@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card shadow-lg border-0 p-4" style="border-radius: 20px; width: 100%; max-width: 500px; color: #333;">
+    <h2 class="text-center fw-bold mb-4" style="color: #5a3791;">Fluency'ye Kaydol</h2>
+    <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+        <div class="mb-3 text-start">
+            <label class="form-label small fw-bold">
+                {% if field.name == "username" %} Kullanıcı Adı
+                {% elif field.name == "password1" or field.name == "password" %} Şifre
+                {% elif field.name == "password2" %} Şifre Tekrar
+                {% else %}{{ field.label }}{% endif %}
+            </label>
+            {{ field.errors }}
+
+            {% if field.name == "target_language" or field.name == "target_level" %}
+            {# Seçenekli alanlar #}
+            <select name="{{ field.html_name }}" class="form-select" style="border-radius: 10px;">
+                {% for value, text in field.field.choices %}
+                <option value="{{ value }}">{{ text }}</option>
+                {% endfor %}
+            </select>
+            {% else %}
+            {# Yazı yazılan alanlar #}
+            <input type="{{ field.field.widget.input_type|default:'text' }}" name="{{ field.html_name }}"
+                class="form-control" style="border-radius: 10px;" value="{{ field.value|default:'' }}">
+            {% endif %}
+        </div>
+        {% endfor %}
+        <button type="submit" class="btn btn-primary w-100 btn-lg shadow mt-3"
+            style="background-color: #764ba2; border: none; border-radius: 10px;">Hesap Oluştur</button>
+    </form>
+    <p class="mt-3 text-center small">Zaten hesabın var mı? <a href="/login" style="color: #764ba2;">Giriş Yap</a></p>
+</div>
+{% endblock %}

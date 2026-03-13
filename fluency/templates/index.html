@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block title %}Hoş Geldiniz{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center w-100">
+    <div class="col-md-8 col-lg-5 text-center">
+        <div class="card shadow-lg border-0 p-4 p-md-5" style="border-radius: 20px; color: #333;">
+            <div class="card-body">
+                <div class="mb-4">
+                    <span class="display-3">🇺🇸 🇪🇸 🇹🇷 🇩🇪</span>
+                </div>
+                <h1 class="fw-bold mb-3" style="color: #5a3791;">Fluency'ye Hoş Geldin!</h1>
+                <p class="text-muted mb-5 lead">
+                    Yeni bir dil öğrenmek hiç bu kadar eğlenceli olmamıştı. <br>
+                    Hemen macerana başla veya kaldığın yerden devam et.
+                </p>
+
+                <div class="d-grid gap-3">
+                    <a href="/login" class="btn btn-fluency btn-lg px-5 shadow-sm"
+                        style="background-color: #764ba2; color: white;">
+                        Hesabım Var, Giriş Yap
+                    </a>
+
+                    <div class="d-flex align-items-center my-1">
+                        <hr class="flex-grow-1 text-muted opacity-25">
+                        <span class="mx-3 text-muted small uppercase fw-bold">veya</span>
+                        <hr class="flex-grow-1 text-muted opacity-25">
+                    </div>
+
+                    <a href="/register" class="btn btn-outline-primary btn-lg px-5"
+                        style="border-color: #764ba2; color: #764ba2;">
+                        Yeni Hesap Oluştur
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <p class="mt-4 text-white-50 small">
+            MAT132 Fluency Dil Uygulaması v1.0
+        </p>
+    </div>
+</div>
+{% endblock %}
