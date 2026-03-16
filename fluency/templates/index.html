@@ -1,44 +1,102 @@
 {% extends "base.html" %}
 
-{% block title %}Hoş Geldiniz{% endblock %}
+{% block title %}Akıcı Dil Öğrenimi{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center w-100">
-    <div class="col-md-8 col-lg-5 text-center">
-        <div class="card shadow-lg border-0 p-4 p-md-5" style="border-radius: 20px; color: #333;">
-            <div class="card-body">
-                <div class="mb-4">
-                    <span class="display-3">🇺🇸 🇪🇸 🇹🇷 🇩🇪</span>
+<div class="container">
+    {% if not user.is_authenticated %}
+    <div class="row align-items-center min-vh-75">
+        <div class="col-lg-6 text-center text-lg-start animate__animated animate__fadeIn">
+            <h1 class="display-2 fw-bold mb-4" style="line-height: 1.1;">
+                Dil Öğrenmenin <br><span style="color: #ffd700;">En Akıcı</span> Yolu.
+            </h1>
+            <p class="lead mb-5 text-white-50">
+                Geleneksel yöntemleri unutun. Fluency ile oyunlaştırılmış içerikler ve
+                pratik odaklı derslerle yeni bir dili doğal yollarla öğrenin.
+            </p>
+            <div class="d-flex flex-column flex-sm-row gap-3 justify-content-center justify-content-lg-start">
+                <a href="/register" class="btn btn-start btn-lg px-5 py-3 shadow-lg">Maceraya Başla</a>
+                <a href="#features" class="btn btn-outline-light btn-lg px-5 py-3">Nasıl Çalışır?</a>
+            </div>
+        </div>
+        <div class="col-lg-6 d-none d-lg-block text-center animate__animated animate__zoomIn">
+            <div class="floating-icons" style="font-size: 8rem; filter: drop-shadow(0 20px 30px rgba(0,0,0,0.3));">
+                🌍 💬 🚀
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="row g-4 animate__animated animate__fadeInUp">
+        <div class="col-12 mb-4">
+            <h2 class="fw-bold">Tekrar Hoş Geldin, {{ user.username }}! 👋</h2>
+            <p class="text-white-50">Kaldığın yerden devam etmeye hazır mısın?</p>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card border-0 shadow-lg p-4 mb-4"
+                style="border-radius: 25px; background: rgba(255,255,255,0.95); color: #333;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0">Aktif Kurs: İngilizce 🇺🇸</h4>
+                    <span class="badge bg-success rounded-pill p-2 px-3">Seviye A2</span>
                 </div>
-                <h1 class="fw-bold mb-3" style="color: #5a3791;">Fluency'ye Hoş Geldin!</h1>
-                <p class="text-muted mb-5 lead">
-                    Yeni bir dil öğrenmek hiç bu kadar eğlenceli olmamıştı. <br>
-                    Hemen macerana başla veya kaldığın yerden devam et.
-                </p>
-
-                <div class="d-grid gap-3">
-                    <a href="/login" class="btn btn-fluency btn-lg px-5 shadow-sm"
-                        style="background-color: #764ba2; color: white;">
-                        Hesabım Var, Giriş Yap
-                    </a>
-
-                    <div class="d-flex align-items-center my-1">
-                        <hr class="flex-grow-1 text-muted opacity-25">
-                        <span class="mx-3 text-muted small uppercase fw-bold">veya</span>
-                        <hr class="flex-grow-1 text-muted opacity-25">
-                    </div>
-
-                    <a href="/register" class="btn btn-outline-primary btn-lg px-5"
-                        style="border-color: #764ba2; color: #764ba2;">
-                        Yeni Hesap Oluştur
-                    </a>
+                <div class="progress mb-3" style="height: 12px; border-radius: 10px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar"
+                        style="width: 45%; background: #764ba2;"></div>
                 </div>
+                <p class="small text-muted">Kursun %45'ini tamamladın. Harika gidiyorsun!</p>
+                <a href="/dashboard" class="btn btn-fluency mt-3 py-2">Derslere Dön</a>
             </div>
         </div>
 
-        <p class="mt-4 text-white-50 small">
-            MAT132 Fluency Dil Uygulaması v1.0
-        </p>
+        <div class="col-md-4">
+            <div class="card border-0 shadow-lg p-4 text-center"
+                style="border-radius: 25px; background: rgba(255,255,255,0.15); backdrop-filter: blur(10px);">
+                <div class="mb-3">
+                    <span class="display-5">🔥</span>
+                    <h3 class="fw-bold mt-2">{{ user_streak }} Gün</h3>
+                    <p class="small opacity-75">Günlük Seri</p>
+                </div>
+                <hr class="border-light opacity-25">
+                <a href="/profile" class="text-white text-decoration-none small">Tüm İstatistikleri Gör →</a>
+            </div>
+        </div>
     </div>
+    {% endif %}
 </div>
+
+<style>
+    .min-vh-75 {
+        min-height: 75vh;
+    }
+
+    .btn-start {
+        background: #ffd700;
+        color: #5a3791;
+        font-weight: 700;
+        border-radius: 50px;
+        transition: 0.3s;
+    }
+
+    .btn-start:hover {
+        background: #fff;
+        transform: translateY(-3px);
+    }
+
+    /* Animasyonlar için ufak bir CSS */
+    .floating-icons {
+        animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+
+        0%,
+        100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-20px);
+        }
+    }
+</style>
 {% endblock %}

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Profilim{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center w-100">
+    <div class="col-md-8 col-lg-5">
+        <div class="card shadow-lg border-0 text-center p-4 p-md-5"
+            style="border-radius: 30px; background: rgba(255, 255, 255, 0.95); color: #333;">
+            <div class="mb-4">
+                <div class="d-inline-block p-1 rounded-circle shadow-sm"
+                    style="background: linear-gradient(45deg, #ffd700, #764ba2);">
+                    <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=fff&color=764ba2&size=128"
+                        class="rounded-circle" alt="Profil Resmi">
+                </div>
+            </div>
+
+            <h2 class="fw-bold mb-1" style="color: #5a3791;">Merhaba, {{ user.username }}!</h2>
+            <p class="text-muted small mb-4">{{ user.email }}</p>
+
+            <div class="row g-2 mb-4">
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded-4 border">
+                        <small class="text-muted d-block">Öğrenilen Dil</small>
+                        <strong class="h5">English 🇺🇸</strong>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="p-3 bg-light rounded-4 border">
+                        <small class="text-muted d-block">Günlük Seri</small>
+                        <strong class="h5">🔥 1 Gün</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-grid gap-2">
+                <a href="/dashboard" class="btn btn-primary btn-lg rounded-pill border-0" style="background: #764ba2;">
+                    Derslere Devam Et
+                </a>
+                <a href="/logout" class="btn btn-outline-danger btn-sm border-0 mt-2">
+                    Güvenli Çıkış Yap
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
