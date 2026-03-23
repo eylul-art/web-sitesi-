@@ -10,7 +10,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('profile/', views.profile_view, name='profile'),
     
-    # Şifremi Unuttum Sistemi (NoReverseMatch Hatasını Çözen Kısım)
+    # ŞİFRE SIFIRLAMA SİSTEMİ (Hata veren kısım burasıydı, geri ekledik)
     path('password_reset/', auth_views.PasswordResetView.as_view(
         template_name='users/password_reset.html'
     ), name='password_reset'),

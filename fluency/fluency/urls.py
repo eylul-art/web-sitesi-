@@ -1,9 +1,10 @@
 from django.contrib import admin
-from django.urls import path, include # include eklemeyi unutma!
+from django.urls import path, include
+from languages import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    
-    # Tüm kullanıcı işlemlerini 'users' uygulamasındaki urls.py'ye paslıyoruz
-    path('', include('users.urls')), 
+    path('', include('users.urls')), # Kullanıcı işlemleri (login/register) buradan geçer
+    path('test/<str:lang_code>/', views.start_placement_test, name='start_test'),
+    path('test/<str:lang_code>/evaluate/', views.evaluate_test, name='evaluate_test'),
 ]

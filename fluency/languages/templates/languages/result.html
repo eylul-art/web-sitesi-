@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 text-center text-white">
+    <div class="card bg-dark p-5 rounded-4 shadow-lg border-0" style="background: rgba(0,0,0,0.4) !important; backdrop-filter: blur(10px);">
+        <h1 class="display-4 text-success fw-bold mb-4">Tebrikler! 🎉</h1>
+        <h2>{{ lang_code }} Seviyen Belirlendi:</h2>
+        
+        <div class="my-5">
+            <span class="badge bg-light text-dark px-5 py-3 fw-bold shadow-lg" style="font-size: 4rem; border-radius: 30px;">
+                {{ level }}
+            </span>
+        </div>
+        
+        <p class="lead fs-3 mb-5">Doğru Sayısı: <strong class="text-warning">{{ score }} / {{ total }}</strong></p>
+        
+        <a href="{% url 'index' %}" class="btn btn-primary btn-lg px-5 py-3 rounded-pill fw-bold shadow">
+            Ana Sayfaya Dön ve Derse Başla
+        </a>
+    </div>
+</div>
+{% endblock %}

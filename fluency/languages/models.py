@@ -1,15 +1,25 @@
 from django.db import models
 
-class Language(models.Model):
-    name = models.CharField(max_length=100)
-    code = models.CharField(max_length=10) # örn: en, tr
-
+# Diğer dosyalar bunu beklediği için geri ekledik
+class Level(models.Model):
+    name = models.CharField(max_length=50) # A1, A2 vb.
     def __str__(self):
         return self.name
 
-class Level(models.Model):
-    code = models.CharField(max_length=10) # örn: A1, B2
-
+class Language(models.Model):
+    name = models.CharField(max_length=100)
+    code = models.CharField(max_length=5, unique=True)
     def __str__(self):
-        return self.code
-# Create your models here.
+        return self.name
+
+class Question(models.Model):
+    language_code = models.CharField(max_length=5)
+    text = models.TextField()
+    level = models.CharField(max_length=2)
+    option_a = models.CharField(max_length=200)
+    option_b = models.CharField(max_length=200)
+    option_c = models.CharField(max_length=200)
+    option_d = models.CharField(max_length=200)
+    correct_answer = models.CharField(max_length=1)
+    def __str__(self):
+        return f"[{self.language_code}] {self.text[:30]}"

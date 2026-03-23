@@ -4,17 +4,26 @@ from django.contrib.auth.decorators import login_required
 from .forms import RegisterForm, LoginForm
 
 def index_view(request):
-    """Ana sayfa: Giriş yapmış kullanıcıyı Dashboard'a yönlendirebilir 
-    veya giriş yapmamış kişiye Landing Page gösterir."""
-    context = {
-        'is_homepage': True,
-    }
+    """Ana sayfa: Kullanıcının dilini, seviyesini ve serisini çeker."""
+    context = {'is_homepage': True}
+    
     if request.user.is_authenticated:
-        # İleride veritabanından çekilecek örnek veriler
-        context['user_streak'] = 5
-        context['xp_points'] = 1250
-        # Giriş yapan kullanıcıyı direkt Dashboard içeriğiyle karşılamak için 
-        # index.html içinde {% if user.is_authenticated %} kontrolü kullanıyoruz.
+        # Kullanıcının eklediği dili buluyoruz
+        user_language_entry = request.user.userlanguagelevel_set.first()
+        
+        if user_language_entry:
+            context['target_lang_code'] = user_language_entry.language_code
+            lang_names = {'en': 'İngilizce', 'fr': 'Fransızca', 'de': 'Almanca', 'kr': 'Korece'}
+            context['target_lang_name'] = lang_names.get(user_language_entry.language_code, user_language_entry.language_code.upper())
+            
+            # SEVİYE BİLGİSİNİ BURADAN GÖNDERİYORUZ
+            context['user_level'] = user_language_entry.level
+        else:
+            context['target_lang_code'] = None
+            context['target_lang_name'] = "Dil Seçilmedi"
+            context['user_level'] = None
+
+        context['user_streak'] = getattr(request.user, 'streak', 0)
         
     return render(request, 'index.html', context)
 
@@ -57,12 +66,14 @@ def logout_view(request):
 
 @login_required
 def profile_view(request):
-    """Kullanıcının profil bilgilerini gördüğü yer."""
-    return render(request, 'users/profile.html')
+    """Profil sayfası: Kullanıcının dil seviyesini gösterir."""
+    user_lang = request.user.userlanguagelevel_set.first()
+    context = {
+        'user_lang': user_lang,
+        'user_streak': getattr(request.user, 'streak', 0)
+    }
+    return render(request, 'users/profile.html', context)
 
 @login_required
 def dashboard_view(request):
-    """Derslerin, kelimelerin ve dil seçimlerinin olduğu ana panel."""
-    # Burada veritabanından dersleri çekip gönderebilirsin
-    # Örn: courses = Course.objects.all()
     return render(request, 'users/dashboard.html')

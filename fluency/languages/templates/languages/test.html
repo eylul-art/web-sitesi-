@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 text-white"> <h1 class="fw-bold text-center mb-5">{{ lang_code|upper }} Seviye Tespit Sınavı</h1>
+
+    <div class="card p-5 rounded-4 shadow-lg bg-white border-0">
+        <div style="color: #212529 !important;"> <form method="post" action="{% url 'evaluate_test' lang_code=lang_code %}">
+                {% csrf_token %}
+                
+                {% for question in questions %}
+                <div class="mb-4">
+                    <h4 class="fw-bold" style="color: #212529 !important;">{{ forloop.counter }}. {{ question.text }}</h4>
+                    
+                    <div class="ms-3 mt-3">
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" id="q{{ question.id }}a" value="A" required>
+                            <label class="form-check-label fs-5" for="q{{ question.id }}a" style="color: #212529 !important;">A) {{ question.option_a }}</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" id="q{{ question.id }}b" value="B">
+                            <label class="form-check-label fs-5" for="q{{ question.id }}b" style="color: #212529 !important;">B) {{ question.option_b }}</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" id="q{{ question.id }}c" value="C">
+                            <label class="form-check-label fs-5" for="q{{ question.id }}c" style="color: #212529 !important;">C) {{ question.option_c }}</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" id="q{{ question.id }}d" value="D">
+                            <label class="form-check-label fs-5" for="q{{ question.id }}d" style="color: #212529 !important;">D) {{ question.option_d }}</label>
+                        </div>
+                    </div>
+                </div>
+                <hr class="my-4 opacity-25" style="border-color: #212529;">
+                {% endfor %}
+
+                <div class="text-center mt-5">
+                    <button type="submit" class="btn btn-primary btn-lg px-5 rounded-pill fw-bold shadow">Testi Bitir</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

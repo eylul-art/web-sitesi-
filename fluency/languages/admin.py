@@ -1,13 +1,6 @@
 from django.contrib import admin
-from .models import Language, Level
+from .models import Language, Level, Question
 
-@admin.register(Language)
-class LanguageAdmin(admin.ModelAdmin):
-    list_display = ('name', 'code') # Tablo listesinde görünecek sütunlar
-
-@admin.register(Level)
-class LevelAdmin(admin.ModelAdmin):
-    list_display = ('code',)
-    
-
-# Register your models here.
+admin.site.register(Language)
+admin.site.register(Level)
+admin.site.register(Question)

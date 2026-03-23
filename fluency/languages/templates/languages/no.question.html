@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5 text-center text-white">
+    <div class="card bg-dark p-5 rounded-4 shadow border-0" style="background: rgba(0,0,0,0.5) !important; backdrop-filter: blur(10px);">
+        <h1 class="display-4">🚧 Hazırlık Aşamasında</h1>
+        <p class="lead mt-3">Maalesef <strong>{{ lang_code|upper }}</strong> dili için henüz sisteme soru eklenmemiş.</p>
+        <p class="opacity-75">Admin panelinden soru ekleyerek bu dili canlandırabilirsin!</p>
+        <a href="{% url 'index' %}" class="btn btn-warning mt-4 px-4 rounded-pill fw-bold shadow">Ana Sayfaya Dön</a>
+    </div>
+</div>
+{% endblock %}
