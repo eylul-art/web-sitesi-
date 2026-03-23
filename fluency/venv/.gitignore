@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+library.db
+.metadata
+
+# Django
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Antigravity / VS Code
+.antigravity/
+.vscode/
+.history/
+*.code-workspace
+.pyre/
+
+# Environment variables
+.env
+.venv
+env.perso
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
