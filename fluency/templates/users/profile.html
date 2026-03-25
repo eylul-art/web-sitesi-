@@ -1,59 +1,71 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container mt-5 text-white">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card bg-dark p-5 rounded-4 shadow-lg border-0" style="background: rgba(33, 37, 41, 0.7) !important; backdrop-filter: blur(12px);">
-                
-                <div class="text-center mb-4">
-                    <div class="bg-warning text-dark rounded-circle d-inline-flex align-items-center justify-content-center shadow-lg" style="width: 100px; height: 100px; font-size: 3.5rem; font-weight: bold;">
-                        {{ user.username|make_list|first|upper }}
-                    </div>
-                    <h2 class="fw-bold mt-3 mb-0">{{ user.username }}</h2>
-                    <p class="text-white-50 mt-1">{{ user.email|default:"E-posta adresi belirtilmemiş" }}</p>
-                </div>
-
-                <hr class="opacity-25 border-white my-4">
-
-                <div class="row text-center my-4 g-4">
-                    <div class="col-6 border-end border-secondary">
-                        <h5 class="text-white-50 mb-3">Hedef Dil</h5>
-                        {% if user_lang %}
-                            <h3 class="fw-bold text-warning mb-1">{{ user_lang.language_code|upper }}</h3>
-                            <span class="badge bg-success fs-6 shadow-sm px-3 py-2 rounded-pill mt-2">
-                                🏆 Seviye: {{ user_lang.level }}
-                            </span>
-                        {% else %}
-                            <h4 class="text-muted">Dil Seçilmedi</h4>
-                            <span class="badge bg-secondary fs-6 mt-2">Seviye Yok</span>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="col-6">
-                        <h5 class="text-white-50 mb-3">Öğrenme Serisi</h5>
-                        <div class="d-flex flex-column align-items-center">
-                            <span style="font-size: 2.5rem; line-height: 1;">🔥</span>
-                            <h3 class="fw-bold text-white mt-2">{{ user_streak|default:"0" }} Gün</h3>
-                        </div>
-                    </div>
-                </div>
-
-                <hr class="opacity-25 border-white my-4">
-
-                <div class="text-center mt-4">
-                    {% if user_lang %}
-                        <a href="{% url 'start_test' lang_code=user_lang.language_code %}" class="btn btn-warning btn-lg px-5 rounded-pill fw-bold shadow text-dark">
-                            🔄 Sınavı Tekrar Çöz
-                        </a>
-                    {% else %}
-                        <p class="text-danger mb-3">⚠️ Teste başlamak için bir dile ihtiyacın var.</p>
-                        <a href="/admin" class="btn btn-outline-light rounded-pill px-4">Admin Panelinden Dil Seç</a>
-                    {% endif %}
-                </div>
-
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh; padding-top: 50px;">
+    <div class="card border-0 shadow-lg text-white p-5 text-center" style="background: #2d2e4b; border-radius: 30px; width: 100%; max-width: 600px;">
+        
+        <!-- Üst Kısım: Profil İkonu -->
+        <div class="mb-3 d-flex justify-content-center">
+            <div class="rounded-circle bg-warning d-flex align-items-center justify-content-center shadow" style="width: 100px; height: 100px; font-size: 3rem; font-weight: bold; color: #2d2e4b;">
+                {{ user.username|first|upper }}
             </div>
         </div>
+
+        <!-- Kullanıcı Adı ve Mail -->
+        <h1 class="fw-bold mb-1 text-white">{{ user.username }}</h1>
+        <p class="text-white-50 mb-4">{{ user.email }}</p>
+
+        <hr class="opacity-25 my-4">
+
+        <!-- İstatistik Paneli -->
+        <div class="row">
+            <div class="col-6 border-end border-white border-opacity-25">
+                <h6 class="text-white-50 text-uppercase small">Hedef Dil</h6>
+                <p class="fs-4 fw-bold mb-1">
+                    {% if user_level %}{{ lang_full_name }}{% else %}Seçilmedi{% endif %}
+                </p>
+                <span class="badge bg-secondary">
+                    {% if user_level %}{{ user_level.level }}{% else %}A1{% endif %}
+                </span>
+            </div>
+            <div class="col-6">
+                <h6 class="text-white-50 text-uppercase small">Kelime Sayısı</h6>
+                <p class="fs-4 fw-bold mb-1">📚 {{ words_count|default:0 }}</p>
+                <span class="badge bg-primary px-3">Toplam Kayıt</span>
+            </div>
+        </div>
+
+        <hr class="opacity-25 my-5">
+
+        <!-- BUTONLAR (HATA BURADAYDI, ŞİMDİ GARANTİYE ALDIK) -->
+        <div class="d-grid gap-3">
+            
+            <!-- SEVİYE TESTİ BUTONU -->
+            <!-- Linki manuel olarak /test/ yaptık, böylece placement_test isminde hata olsa bile çalışır -->
+            <a href="{% url 'placement_test' %}" class="btn btn-warning btn-lg rounded-pill fw-bold text-dark py-3 shadow-sm">
+                🔄 SEVİYE TESTİNİ BAŞLAT
+            </a>
+
+            <!-- SÖZLÜĞÜM BUTONU -->
+            <a href="{% url 'my_dictionary' %}" class="btn btn-outline-light rounded-pill fw-bold py-2 opacity-75">
+                📖 Kelimelerime Göz At
+            </a>
+
+        </div>
+
     </div>
 </div>
+
+<style>
+    body { background-color: #1a1a2e; } /* Arka planı koyulaştırdık */
+    .test-btn {
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    .test-btn:hover {
+        transform: translateY(-5px);
+        background-color: #ffca2c !important;
+        box-shadow: 0 10px 20px rgba(255, 193, 7, 0.4) !important;
+    }
+</style>
 {% endblock %}

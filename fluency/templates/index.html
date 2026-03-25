@@ -2,93 +2,113 @@
 
 {% block content %}
 <div class="container mt-5">
-    {% if user.is_authenticated %}
-    <div class="row g-4">
-        <!-- ÜST BİLGİ ÇUBUĞU -->
-        <div class="col-12 mb-2 d-flex justify-content-between align-items-center bg-dark text-white p-4 rounded-4 shadow">
-            <div>
-                <h2 class="fw-bold">Selam, {{ user.username }}! 👋</h2>
-                <div class="d-flex align-items-center mt-2">
-                    <p class="mb-0 opacity-75 fs-5">
-                        Hedef Dil: <strong class="ms-1 text-white">{{ target_lang_name }}</strong>
-                    </p>
-                    {% if user_level %}
-                        <span class="badge bg-success ms-3 px-3 py-2 fs-6 rounded-pill shadow-sm">
-                            🏆 Seviye: {{ user_level }}
+    <!-- Üst Karşılama Paneli -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card border-0 shadow-lg p-4 text-white" style="background: linear-gradient(135.47deg, #1d1e5f 0%, #3558d4 100%); border-radius: 25px;">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h1 class="fw-bold">Merhaba, {{ user.username }}! 👋</h1>
+                        <p class="fs-5 opacity-75">Bugün yeni kelimeler keşfetmek için harika bir gün.</p>
+                    </div>
+                    <div class="text-end d-none d-md-block">
+                        <span class="badge rounded-pill bg-warning text-dark px-4 py-2 fs-6 shadow">
+                            🔥 {{ user_streak }} Günlük Seri!
                         </span>
-                    {% endif %}
-                </div>
-            </div>
-
-            {% if target_lang_code %}
-                <a href="{% url 'start_test' lang_code=target_lang_code %}" class="btn btn-warning btn-lg fw-bold rounded-pill px-4 shadow text-dark">
-                    {% if user_level and user_level != 'A1' %} 
-                        🔄 {{ target_lang_name }} Seviyeni Güncelle
-                    {% else %}
-                        🚀 {{ target_lang_name }} Testine Başla
-                    {% endif %}
-                </a>
-            {% else %}
-                <a href="/admin" class="btn btn-outline-light rounded-pill px-4">
-                    ⚠️ Önce Dil Seçmelisin
-                </a>
-            {% endif %}
-        </div>
-
-        <!-- STREAK (SERİ) KARTI -->
-        <div class="col-md-4 text-center">
-            <div class="card border-0 shadow-lg p-4 bg-primary text-white h-100 d-flex justify-content-center" style="border-radius: 20px;">
-                <span style="font-size: 3.5rem;">🔥</span>
-                <h3 class="fw-bold mt-2">{{ user_streak|default:"0" }} Gün</h3>
-                <p class="small opacity-75 mb-0">Günlük Seri</p>
-            </div>
-        </div>
-
-        <!-- DERSLERE DEVAM KARTI -->
-        <div class="col-md-8">
-            <div class="card border-0 shadow-lg p-4 h-100 d-flex flex-column justify-content-center" style="border-radius: 20px; background: white; color: #333;">
-                <h4 class="fw-bold">Mevcut Durum</h4>
-                <p class="text-muted">Öğrenme yolculuğun burada başlıyor.</p>
-                <div class="progress mb-4" style="height: 12px; border-radius: 10px;">
-                    <div class="progress-bar bg-success" style="width: 15%;"></div>
-                </div>
-                <div>
-                    <a href="/dashboard" class="btn btn-primary rounded-pill px-4 fw-bold">Derslere Devam Et</a>
-                </div>
-            </div>
-        </div>
-
-        <!-- 🚀 YENİ EKLENEN: WIKIPEDIA KEŞİF MODÜLÜ KARTI -->
-        <div class="col-12 mt-4">
-            <div class="card border-0 shadow-lg p-5" style="border-radius: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
-                <div class="row align-items-center">
-                    <div class="col-md-8 text-center text-md-start mb-4 mb-md-0">
-                        <h2 class="fw-bold mb-3">🌍 Wikipedia Keşif Modülü</h2>
-                        <p class="fs-5 opacity-75 mb-0">
-                            <strong>{{ target_lang_name }}</strong> dilinde gerçek makaleler oku. Bilmediğin kelimelere tıkla ve anında kişisel sözlüğüne kaydet!
-                        </p>
-                    </div>
-                    <div class="col-md-4 text-center text-md-end">
-                        <a href="{% url 'wiki_reader' %}" class="btn btn-light btn-lg rounded-pill px-5 py-3 fw-bold text-dark shadow-lg" style="font-size: 1.2rem;">
-                            Keşfetmeye Başla 🚀
-                        </a>
                     </div>
                 </div>
             </div>
         </div>
-
     </div>
-    
-    {% else %}
-    <!-- GİRİŞ YAPILMAMIŞSA GÖRÜNEN KISIM -->
-    <div class="text-center py-5">
-        <h1 class="display-3 fw-bold text-white">Fluency'ye Hoş Geldin</h1>
-        <p class="lead text-white-50 mt-3 mb-4">Dil öğrenme serüvenine başlamak için giriş yap veya kayıt ol.</p>
-        <div class="d-flex justify-content-center gap-3">
-            <a href="{% url 'login' %}" class="btn btn-warning btn-lg px-5 rounded-pill fw-bold shadow">Giriş Yap</a>
-            <a href="{% url 'register' %}" class="btn btn-outline-light btn-lg px-5 rounded-pill fw-bold">Kayıt Ol</a>
+
+    <div class="row g-4">
+        <!-- SOL KOLON: DİL DURUMU VE İSTATİSTİKLER -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px;">
+                <h5 class="fw-bold text-muted mb-4">🎯 Mevcut Hedef</h5>
+                <div class="text-center">
+                    <div class="display-4 mb-2">🇫🇷</div>
+                    <h3 class="fw-bold text-dark">{{ target_lang_name }}</h3>
+                    <p class="badge bg-primary px-3 py-2 fs-6">Seviye: {{ user_level }}</p>
+                </div>
+                <hr>
+                <div class="d-grid gap-2">
+                    <a href="{% url 'wiki_reader' %}" class="btn btn-dark btn-lg rounded-pill fw-bold shadow-sm">
+                        Okumaya Başla 📖
+                    </a>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 20px; background: #f8f9fa;">
+                <h6 class="text-muted fw-bold mb-0">Toplam Kaydedilen Kelime</h6>
+                <div class="display-5 fw-bold text-primary mt-2">
+                    {% if user_words %}{{ user_words.count }}{% else %}0{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- SAĞ KOLON: WIKIPEDIA'DAN KAYDEDİLEN KELİMELER -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold text-dark mb-0">📚 Son Öğrendiğim Kelimeler</h4>
+                    <a href="{% url 'my_dictionary' %}" class="btn btn-sm btn-link text-decoration-none fw-bold">Tümünü Gör →</a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle border-0">
+                        <thead class="text-muted small text-uppercase">
+                            <tr>
+                                <th class="border-0">Kelime</th>
+                                <th class="border-0">Türkçe Anlamı</th>
+                                <th class="border-0">Dil</th>
+                                <th class="border-0 text-end">Tarih</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for word in user_words %}
+                            <tr style="cursor: pointer;">
+                                <td class="border-0">
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-primary bg-opacity-10 p-2 me-3">
+                                            <i class="bi bi-translate text-primary"></i>
+                                        </div>
+                                        <span class="fw-bold text-dark fs-5">{{ word.word }}</span>
+                                    </div>
+                                </td>
+                                <td class="border-0 text-success fw-bold fs-6">
+                                    {{ word.turkish_meaning }}
+                                </td>
+                                <td class="border-0">
+                                    <span class="badge bg-light text-dark border">{{ word.language|upper }}</span>
+                                </td>
+                                <td class="border-0 text-end text-muted small">
+                                    {{ word.added_at|date:"d M Y" }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center py-5">
+                                    <div class="text-muted">
+                                        <p class="fs-4 mb-1">🧐 Henüz hiç kelime yok.</p>
+                                        <p>Wikipedia'da bir makale okuyup bilmediğin kelimelere tıklayarak başlayabilirsin!</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
-    {% endif %}
 </div>
+
+<style>
+    /* Küçük dokunuşlar */
+    body { background-color: #f4f7fe; }
+    .card { transition: transform 0.3s ease; }
+    .table-hover tbody tr:hover { background-color: #f8faff !important; transform: scale(1.01); }
+    .bg-success-soft { background-color: #e8f5e9; color: #2e7d32; }
+</style>
 {% endblock %}

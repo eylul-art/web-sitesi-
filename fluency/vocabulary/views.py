@@ -5,9 +5,11 @@ import urllib.parse
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
 from .models import SavedWord
 
 def wiki_reader(request):
+    """Wikipedia'dan tam HTML çeken ve akıllı arama yapan modül"""
     context = {}
     db_lang_code = 'en' 
     
@@ -24,11 +26,8 @@ def wiki_reader(request):
     
     headers = {'User-Agent': 'FluencyLanguageApp/1.0 (Takim Projesi)'}
     
-    # 1. SENARYO: KULLANICI LİSTEDEN BİR MAKALE SEÇTİYSE (TAM VİKİPEDİ MODU)
     if article:
         safe_title = urllib.parse.quote(article)
-        
-        # 🔥 İŞTE SİHİR BURADA: Sadece özet değil, makalenin TAM HTML kodunu istiyoruz
         parse_url = f"https://{wiki_lang}.wikipedia.org/w/api.php?action=parse&page={safe_title}&format=json&prop=text&redirects=1"
         
         try:
@@ -38,14 +37,9 @@ def wiki_reader(request):
                 if 'parse' in data:
                     context['title'] = data['parse']['title']
                     html_content = data['parse']['text']['*']
-                    
-                    # Wikipedia içindeki resimlerin linklerini düzeltiyoruz (sayfada kırık durmasın diye)
                     html_content = html_content.replace('src="//', 'src="https://')
-                    
-                    # Makale içindeki diğer Vikipedi linklerine tıklayınca BİZİM sitemizde kalmasını sağlıyoruz!
                     safe_q = urllib.parse.quote(query)
                     html_content = html_content.replace('href="/wiki/', f'href="?q={safe_q}&article=')
-                    
                     context['content'] = html_content
                 else:
                     context['error'] = "Makale içeriği alınamadı."
@@ -56,7 +50,6 @@ def wiki_reader(request):
             
         context['search_query'] = query 
         
-    # 2. SENARYO: KULLANICI SADECE ARAMA YAPTIYSA (LİSTELEME MODU)
     elif query:
         safe_query = urllib.parse.quote(query)
         search_url = f"https://{wiki_lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch={safe_query}&utf8=&format=json&srlimit=10"
@@ -82,6 +75,7 @@ def wiki_reader(request):
 
 @csrf_exempt
 def save_word_ajax(request):
+    """Tıklanan kelimeyi API ile Türkçe'ye çevirip arka planda kaydeder."""
     if request.method == 'POST':
         if not request.user.is_authenticated:
             return JsonResponse({'status': 'error', 'message': 'Giriş yapmalısın!'})
@@ -89,11 +83,44 @@ def save_word_ajax(request):
             data = json.loads(request.body)
             clicked_word = data.get('word', '').strip().lower()
             lang = data.get('lang', 'en').lower()
-            clean_word = re.sub(r'[^\w\s]', '', clicked_word)
+            
+            clean_word = re.sub(r'[^\w\s]', '', clicked_word).strip()
+            
             if clean_word:
-                SavedWord.objects.get_or_create(user=request.user, word=clean_word, language=lang)
-                return JsonResponse({'status': 'success', 'word': clean_word})
+                # 1. Kelime zaten kaydedilmiş mi kontrol et
+                existing_word = SavedWord.objects.filter(user=request.user, word=clean_word, language=lang).first()
+                if existing_word:
+                    # Eskiden çevirisiz kaydedildiyse boş kalmaması için önlem:
+                    anlam = existing_word.turkish_meaning if existing_word.turkish_meaning else "Zaten listede"
+                    return JsonResponse({'status': 'info', 'word': clean_word, 'meaning': anlam, 'message': 'Zaten sözlüğünde var!'})
+                
+                # 2. ÜCRETSİZ ÇEVİRİ API'Sİ (MyMemory) ÇALIŞIYOR
+                translation = "Çeviri bulunamadı"
+                try:
+                    trans_url = f"https://api.mymemory.translated.net/get?q={clean_word}&langpair={lang}|tr"
+                    trans_response = requests.get(trans_url, timeout=4)
+                    if trans_response.status_code == 200:
+                        trans_data = trans_response.json()
+                        resp_data = trans_data.get('responseData')
+                        if resp_data and isinstance(resp_data, dict):
+                            translation = resp_data.get('translatedText', 'Çeviri bulunamadı')
+                except Exception as e:
+                    print("Çeviri Hatası:", e) # Terminalde hatayı görmek için
+                    pass 
+
+                # 3. Çevirisiyle birlikte Veritabanına kaydet
+                SavedWord.objects.create(user=request.user, word=clean_word, turkish_meaning=translation, language=lang)
+                
+                # JS'nin beklediği "meaning" anahtarını gönderiyoruz!
+                return JsonResponse({'status': 'success', 'word': clean_word, 'meaning': translation})
+                
             return JsonResponse({'status': 'error', 'message': 'Geçersiz kelime.'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'Geçersiz istek türü.'})
+
+@login_required
+def my_dictionary(request):
+    """Kullanıcının kaydettiği kelimeleri ve çevirilerini profilinde listeler."""
+    words = SavedWord.objects.filter(user=request.user).order_by('-added_at')
+    return render(request, 'vocabulary/my_dictionary.html', {'words': words})

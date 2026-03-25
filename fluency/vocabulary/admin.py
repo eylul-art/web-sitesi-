@@ -3,7 +3,14 @@ from .models import SavedWord
 
 @admin.register(SavedWord)
 class SavedWordAdmin(admin.ModelAdmin):
-    list_display = ('word', 'user', 'language', 'status', 'created_at')
-    list_filter = ('status', 'language')
-    search_fields = ('word',) # Kelime arama kutusu ekler
-# Register your models here.
+    # Admin panelinde listede görünecek sütunlar
+    list_display = ('word', 'turkish_meaning', 'language', 'user', 'added_at')
+    
+    # Sağ taraftaki filtreleme menüsü
+    list_filter = ('language', 'added_at')
+    
+    # Arama çubuğunda neleri arayabileceği
+    search_fields = ('word', 'turkish_meaning', 'user__username')
+    
+    # Tarih alanı sadece okunabilir olsun (elle değiştirilmesin)
+    readonly_fields = ('added_at',)
