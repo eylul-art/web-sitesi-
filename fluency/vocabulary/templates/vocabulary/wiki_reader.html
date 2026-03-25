@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    /* Wikipedia'nın gönderdiği arama kelimesini kalın yapmak için */
+    .searchmatch { font-weight: bold; color: #d63384; }
+    .hover-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important; cursor: pointer; }
+</style>
+
+<div class="container mt-5 text-white">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            
+            <!-- Arama Kutusu -->
+            <div class="card bg-dark p-4 rounded-4 shadow-lg border-0 mb-4" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(10px);">
+                <h2 class="fw-bold mb-3 text-center">🌍 Wikipedia Keşif Modülü</h2>
+                <p class="text-center text-white-50 mb-4">
+                    Şu an <strong>{{ lang }}</strong> dilinde arama yapıyorsun. <br>
+                    İlgini çeken makaleyi seç ve okurken bilmediğin kelimelere tıklayıp sözlüğüne kaydet!
+                </p>
+                
+                <form method="get" action="{% url 'wiki_reader' %}" class="d-flex gap-2 justify-content-center">
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-lg w-50 rounded-pill px-4" placeholder="Bir konu ara (örn: musique)..." required>
+                    <button type="submit" class="btn btn-warning btn-lg rounded-pill px-4 fw-bold shadow">Ara 🚀</button>
+                </form>
+            </div>
+
+            <!-- HATA MESAJI -->
+            {% if error %}
+            <div class="alert alert-danger rounded-4 shadow text-center fs-5 p-4 mb-4 border-0">
+                <p class="mb-0 fw-bold">⚠️ {{ error }}</p>
+            </div>
+            {% endif %}
+
+            <!-- 1. AŞAMA: ARAMA SONUÇLARI LİSTESİ -->
+            {% if search_results and not content %}
+            <div class="mb-5">
+                <h4 class="text-white mb-4 border-bottom pb-2">"{{ search_query }}" için bulunan makaleler:</h4>
+                <div class="row g-3">
+                    {% for result in search_results %}
+                    <div class="col-md-6">
+                        <!-- Linke tıklandığında hem q (arama) hem article (makale) parametresi gider -->
+                        <a href="?q={{ search_query|urlencode }}&article={{ result.title|urlencode }}" class="text-decoration-none">
+                            <div class="card bg-light h-100 hover-card transition-all shadow-sm" style="border-radius: 15px;">
+                                <div class="card-body">
+                                    <h5 class="card-title fw-bold text-dark fs-4 mb-2">📚 {{ result.title }}</h5>
+                                    <!-- snippet Wikipedia'dan HTML etiketleriyle gelir, o yüzden safe filtresi kullanılır -->
+                                    <p class="card-text text-muted mb-0" style="font-size: 0.95rem;">{{ result.snippet|safe }}...</p>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- 2. AŞAMA: SEÇİLEN MAKALE İÇERİĞİ -->
+            {% if content %}
+            <div class="mb-3">
+                <a href="?q={{ search_query|urlencode }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
+                    ⬅️ Arama Sonuçlarına Dön
+                </a>
+            </div>
+            <div class="card bg-light text-dark p-5 rounded-4 shadow-lg border-0 position-relative">
+                <h1 class="display-5 fw-bold mb-4 border-bottom pb-3">{{ title }}</h1>
+                <div id="wiki-content" class="fs-4" style="line-height: 1.8;">
+                    {{ content }}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+
+<!-- Sağ Alt Köşede Çıkacak Bildirim -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+  <div id="successToast" class="toast align-items-center text-white bg-success border-0 rounded-4 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body fs-5 fw-bold" id="toastMessage">Kelime eklendi!</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const contentDiv = document.getElementById("wiki-content");
+        if (!contentDiv) return;
+
+        const text = contentDiv.innerText;
+        const words = text.split(/\s+/);
+        contentDiv.innerHTML = "";
+
+        words.forEach(word => {
+            if (word.trim() === "") return;
+            const span = document.createElement("span");
+            span.innerText = word + " ";
+            span.style.cursor = "pointer";
+            span.style.transition = "all 0.2s ease";
+            
+            span.addEventListener("mouseover", () => { 
+                span.style.backgroundColor = "#ffeeba"; 
+                span.style.borderRadius = "5px"; 
+            });
+            span.addEventListener("mouseout", () => { 
+                if(span.style.backgroundColor !== "rgb(209, 231, 221)") {
+                    span.style.backgroundColor = "transparent"; 
+                }
+            });
+
+            span.addEventListener("click", function() {
+                saveWord(word, span);
+            });
+
+            contentDiv.appendChild(span);
+        });
+    });
+
+    function saveWord(word, spanElement) {
+        fetch("{% url 'save_word_ajax' %}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({word: word, lang: "{{ lang }}"})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "success") {
+                spanElement.style.color = "#198754"; 
+                spanElement.style.fontWeight = "bold";
+                spanElement.style.backgroundColor = "#d1e7dd"; 
+                spanElement.style.borderRadius = "5px";
+                
+                document.getElementById("toastMessage").innerText = "✅ '" + data.word + "' sözlüğüne kaydedildi!";
+                new bootstrap.Toast(document.getElementById("successToast")).show();
+            }
+        });
+    }
+</script>
+{% endblock %}

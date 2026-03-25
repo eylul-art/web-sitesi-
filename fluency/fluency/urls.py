@@ -5,6 +5,11 @@ from languages import views
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('users.urls')), # Kullanıcı işlemleri (login/register) buradan geçer
+    
+    # Diller ve Test İşlemleri
     path('test/<str:lang_code>/', views.start_placement_test, name='start_test'),
     path('test/<str:lang_code>/evaluate/', views.evaluate_test, name='evaluate_test'),
+    
+    # 🚀 İŞTE YENİ WIKIPEDIA VE SÖZLÜK MODÜLÜMÜZ:
+    path('vocab/', include('vocabulary.urls')),
 ]

@@ -4,14 +4,14 @@
 <div class="container mt-5">
     {% if user.is_authenticated %}
     <div class="row g-4">
-        <div class="col-12 mb-4 d-flex justify-content-between align-items-center bg-dark text-white p-4 rounded-4 shadow">
+        <!-- ÜST BİLGİ ÇUBUĞU -->
+        <div class="col-12 mb-2 d-flex justify-content-between align-items-center bg-dark text-white p-4 rounded-4 shadow">
             <div>
                 <h2 class="fw-bold">Selam, {{ user.username }}! 👋</h2>
                 <div class="d-flex align-items-center mt-2">
                     <p class="mb-0 opacity-75 fs-5">
                         Hedef Dil: <strong class="ms-1 text-white">{{ target_lang_name }}</strong>
                     </p>
-                    
                     {% if user_level %}
                         <span class="badge bg-success ms-3 px-3 py-2 fs-6 rounded-pill shadow-sm">
                             🏆 Seviye: {{ user_level }}
@@ -35,27 +35,52 @@
             {% endif %}
         </div>
 
+        <!-- STREAK (SERİ) KARTI -->
         <div class="col-md-4 text-center">
-            <div class="card border-0 shadow-lg p-4 bg-primary text-white" style="border-radius: 20px;">
+            <div class="card border-0 shadow-lg p-4 bg-primary text-white h-100 d-flex justify-content-center" style="border-radius: 20px;">
                 <span style="font-size: 3.5rem;">🔥</span>
                 <h3 class="fw-bold mt-2">{{ user_streak|default:"0" }} Gün</h3>
-                <p class="small opacity-75">Günlük Seri</p>
+                <p class="small opacity-75 mb-0">Günlük Seri</p>
             </div>
         </div>
 
+        <!-- DERSLERE DEVAM KARTI -->
         <div class="col-md-8">
-            <div class="card border-0 shadow-lg p-4" style="border-radius: 20px; background: white; color: #333;">
+            <div class="card border-0 shadow-lg p-4 h-100 d-flex flex-column justify-content-center" style="border-radius: 20px; background: white; color: #333;">
                 <h4 class="fw-bold">Mevcut Durum</h4>
                 <p class="text-muted">Öğrenme yolculuğun burada başlıyor.</p>
-                <div class="progress mb-3" style="height: 12px; border-radius: 10px;">
+                <div class="progress mb-4" style="height: 12px; border-radius: 10px;">
                     <div class="progress-bar bg-success" style="width: 15%;"></div>
                 </div>
-                <a href="/dashboard" class="btn btn-primary rounded-pill px-4">Derslere Devam Et</a>
+                <div>
+                    <a href="/dashboard" class="btn btn-primary rounded-pill px-4 fw-bold">Derslere Devam Et</a>
+                </div>
             </div>
         </div>
+
+        <!-- 🚀 YENİ EKLENEN: WIKIPEDIA KEŞİF MODÜLÜ KARTI -->
+        <div class="col-12 mt-4">
+            <div class="card border-0 shadow-lg p-5" style="border-radius: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                <div class="row align-items-center">
+                    <div class="col-md-8 text-center text-md-start mb-4 mb-md-0">
+                        <h2 class="fw-bold mb-3">🌍 Wikipedia Keşif Modülü</h2>
+                        <p class="fs-5 opacity-75 mb-0">
+                            <strong>{{ target_lang_name }}</strong> dilinde gerçek makaleler oku. Bilmediğin kelimelere tıkla ve anında kişisel sözlüğüne kaydet!
+                        </p>
+                    </div>
+                    <div class="col-md-4 text-center text-md-end">
+                        <a href="{% url 'wiki_reader' %}" class="btn btn-light btn-lg rounded-pill px-5 py-3 fw-bold text-dark shadow-lg" style="font-size: 1.2rem;">
+                            Keşfetmeye Başla 🚀
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
     
     {% else %}
+    <!-- GİRİŞ YAPILMAMIŞSA GÖRÜNEN KISIM -->
     <div class="text-center py-5">
         <h1 class="display-3 fw-bold text-white">Fluency'ye Hoş Geldin</h1>
         <p class="lead text-white-50 mt-3 mb-4">Dil öğrenme serüvenine başlamak için giriş yap veya kayıt ol.</p>
