@@ -2,49 +2,58 @@
 
 {% block content %}
 <style>
-    /* Wikipedia'nın gönderdiği arama kelimesini kalın yapmak için */
-    .searchmatch { font-weight: bold; color: #d63384; }
+    /* Arama Kartları Hover Efekti */
     .hover-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important; cursor: pointer; }
+    
+    /* VİKİPEDİ TASARIM ENTEGRASYONU (Resimdeki gibi görünmesi için) */
+    #wiki-content { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #202122; line-height: 1.6; font-size: 1.1rem;}
+    #wiki-content h2, #wiki-content h3 { border-bottom: 1px solid #a2a9b1; padding-bottom: 0.2em; margin-top: 1.5em; }
+    #wiki-content a { color: #0645ad; text-decoration: none; }
+    #wiki-content a:hover { text-decoration: underline; }
+    
+    /* Vikipedi Sağ Bilgi Kutusu (Infobox) ve Tablolar */
+    .infobox { float: right; clear: right; margin-left: 1.5em; margin-bottom: 1em; background: #f8f9fa; border: 1px solid #a2a9b1; padding: 0.5em; width: 300px; font-size: 0.9em; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px;}
+    .infobox th { text-align: left; }
+    .tright { float: right; margin-left: 1em; border: 1px solid #ccc; padding: 5px; background: #fff; border-radius: 5px;}
+    .tleft { float: left; margin-right: 1em; border: 1px solid #ccc; padding: 5px; background: #fff; border-radius: 5px;}
+    .wikitable { border-collapse: collapse; margin: 1em 0; background-color: #f8f9fa; width: 100%;}
+    .wikitable th, .wikitable td { border: 1px solid #a2a9b1; padding: 0.4em; }
+    .thumbinner { border: none !important; background: transparent !important; }
+    .thumbimage { border: 1px solid #ccc; max-width: 100%; height: auto; border-radius: 5px;}
+    .navbox, .metadata, .mw-editsection { display: none; } /* Gereksiz Vikipedi linklerini gizle */
 </style>
 
 <div class="container mt-5 text-white">
     <div class="row justify-content-center">
-        <div class="col-md-10">
+        <div class="col-md-11">
             
-            <!-- Arama Kutusu -->
             <div class="card bg-dark p-4 rounded-4 shadow-lg border-0 mb-4" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(10px);">
                 <h2 class="fw-bold mb-3 text-center">🌍 Wikipedia Keşif Modülü</h2>
                 <p class="text-center text-white-50 mb-4">
-                    Şu an <strong>{{ lang }}</strong> dilinde arama yapıyorsun. <br>
-                    İlgini çeken makaleyi seç ve okurken bilmediğin kelimelere tıklayıp sözlüğüne kaydet!
+                    Şu an <strong>{{ lang }}</strong> dilinde arama yapıyorsun. Makaleyi okurken bilmediğin kelimelere tıkla ve sözlüğüne ekle!
                 </p>
-                
                 <form method="get" action="{% url 'wiki_reader' %}" class="d-flex gap-2 justify-content-center">
                     <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-lg w-50 rounded-pill px-4" placeholder="Bir konu ara (örn: musique)..." required>
                     <button type="submit" class="btn btn-warning btn-lg rounded-pill px-4 fw-bold shadow">Ara 🚀</button>
                 </form>
             </div>
 
-            <!-- HATA MESAJI -->
             {% if error %}
             <div class="alert alert-danger rounded-4 shadow text-center fs-5 p-4 mb-4 border-0">
                 <p class="mb-0 fw-bold">⚠️ {{ error }}</p>
             </div>
             {% endif %}
 
-            <!-- 1. AŞAMA: ARAMA SONUÇLARI LİSTESİ -->
             {% if search_results and not content %}
             <div class="mb-5">
                 <h4 class="text-white mb-4 border-bottom pb-2">"{{ search_query }}" için bulunan makaleler:</h4>
                 <div class="row g-3">
                     {% for result in search_results %}
                     <div class="col-md-6">
-                        <!-- Linke tıklandığında hem q (arama) hem article (makale) parametresi gider -->
                         <a href="?q={{ search_query|urlencode }}&article={{ result.title|urlencode }}" class="text-decoration-none">
                             <div class="card bg-light h-100 hover-card transition-all shadow-sm" style="border-radius: 15px;">
                                 <div class="card-body">
                                     <h5 class="card-title fw-bold text-dark fs-4 mb-2">📚 {{ result.title }}</h5>
-                                    <!-- snippet Wikipedia'dan HTML etiketleriyle gelir, o yüzden safe filtresi kullanılır -->
                                     <p class="card-text text-muted mb-0" style="font-size: 0.95rem;">{{ result.snippet|safe }}...</p>
                                 </div>
                             </div>
@@ -55,17 +64,18 @@
             </div>
             {% endif %}
 
-            <!-- 2. AŞAMA: SEÇİLEN MAKALE İÇERİĞİ -->
             {% if content %}
-            <div class="mb-3">
+            <div class="mb-3 d-flex justify-content-between align-items-center">
                 <a href="?q={{ search_query|urlencode }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
                     ⬅️ Arama Sonuçlarına Dön
                 </a>
             </div>
-            <div class="card bg-light text-dark p-5 rounded-4 shadow-lg border-0 position-relative">
-                <h1 class="display-5 fw-bold mb-4 border-bottom pb-3">{{ title }}</h1>
-                <div id="wiki-content" class="fs-4" style="line-height: 1.8;">
-                    {{ content }}
+            
+            <div class="card bg-white text-dark p-5 rounded-4 shadow-lg border-0 position-relative mb-5" style="overflow: hidden;">
+                <h1 class="display-4 fw-bold mb-4 border-bottom pb-3" style="font-family: 'Georgia', serif;">{{ title }}</h1>
+                
+                <div id="wiki-content" class="clearfix">
+                    {{ content|safe }}
                 </div>
             </div>
             {% endif %}
@@ -74,7 +84,6 @@
     </div>
 </div>
 
-<!-- Sağ Alt Köşede Çıkacak Bildirim -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
   <div id="successToast" class="toast align-items-center text-white bg-success border-0 rounded-4 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
     <div class="d-flex">
@@ -89,32 +98,50 @@
         const contentDiv = document.getElementById("wiki-content");
         if (!contentDiv) return;
 
-        const text = contentDiv.innerText;
-        const words = text.split(/\s+/);
-        contentDiv.innerHTML = "";
+        // İLERİ SEVİYE DOM TARAYICI (TreeWalker): Resimleri ve tabloları bozmadan sadece metinleri bulur
+        const walker = document.createTreeWalker(contentDiv, NodeFilter.SHOW_TEXT, null, false);
+        const nodesToReplace = [];
+        let node;
+        
+        while (node = walker.nextNode()) {
+            // Script, stil veya zaten link olan şeylerin içindeki kelimeleri bölmekten kaçın
+            if (node.nodeValue.trim() !== '' && !['SCRIPT', 'STYLE'].includes(node.parentNode.tagName)) {
+                nodesToReplace.push(node);
+            }
+        }
 
-        words.forEach(word => {
-            if (word.trim() === "") return;
-            const span = document.createElement("span");
-            span.innerText = word + " ";
-            span.style.cursor = "pointer";
-            span.style.transition = "all 0.2s ease";
-            
-            span.addEventListener("mouseover", () => { 
-                span.style.backgroundColor = "#ffeeba"; 
-                span.style.borderRadius = "5px"; 
-            });
-            span.addEventListener("mouseout", () => { 
-                if(span.style.backgroundColor !== "rgb(209, 231, 221)") {
-                    span.style.backgroundColor = "transparent"; 
+        nodesToReplace.forEach(textNode => {
+            const words = textNode.nodeValue.split(/(\s+)/); // Boşlukları koruyarak böl
+            const fragment = document.createDocumentFragment();
+
+            words.forEach(word => {
+                if (word.trim() === '') {
+                    fragment.appendChild(document.createTextNode(word));
+                } else {
+                    const span = document.createElement("span");
+                    span.innerText = word;
+                    span.style.cursor = "pointer";
+                    span.style.transition = "all 0.2s ease";
+                    
+                    span.addEventListener("mouseover", () => { 
+                        span.style.backgroundColor = "#ffeeba"; 
+                        span.style.borderRadius = "3px"; 
+                    });
+                    span.addEventListener("mouseout", () => { 
+                        if(span.style.backgroundColor !== "rgb(209, 231, 221)") {
+                            span.style.backgroundColor = "transparent"; 
+                        }
+                    });
+
+                    span.addEventListener("click", function(e) {
+                        e.preventDefault(); // Eğer bir Vikipedi linkinin içindeyse sayfaya gitmesini engelle, kelimeyi kaydet
+                        saveWord(word.trim(), span);
+                    });
+
+                    fragment.appendChild(span);
                 }
             });
-
-            span.addEventListener("click", function() {
-                saveWord(word, span);
-            });
-
-            contentDiv.appendChild(span);
+            textNode.parentNode.replaceChild(fragment, textNode);
         });
     });
 
@@ -133,7 +160,7 @@
                 spanElement.style.color = "#198754"; 
                 spanElement.style.fontWeight = "bold";
                 spanElement.style.backgroundColor = "#d1e7dd"; 
-                spanElement.style.borderRadius = "5px";
+                spanElement.style.borderRadius = "3px";
                 
                 document.getElementById("toastMessage").innerText = "✅ '" + data.word + "' sözlüğüne kaydedildi!";
                 new bootstrap.Toast(document.getElementById("successToast")).show();
