@@ -1,31 +1,42 @@
 from django.shortcuts import render, redirect
 from .models import Question
-# Kullanıcının seviyesini kaydetmek için modelimizi çağırıyoruz
-from users.models import UserLanguageLevel 
+from users.models import UserLanguageLevel
 
+from django.contrib import messages # Mesaj eklemek için bunu en üste ekle
+
+# languages/views.py içinde
 def start_placement_test(request, lang_code):
-    questions = Question.objects.filter(language_code=lang_code.lower())
-    if not questions.exists():
-        return render(request, 'languages/no_questions.html', {'lang_code': lang_code})
+    lang_code = lang_code.lower()
+    questions = Question.objects.filter(language_code=lang_code).order_by('?')[:15]
+    
+    # Başlıkları her dilin kendi dilinde tanımlayalım
+    titles = {
+        'de': 'Einstufungstest Deutsch',
+        'en': 'English Placement Test',
+        'fr': 'Test de placement de français',
+        'kr': '한국어 레벨 테스트',
+        'ar': 'اختبار تحديد المستوى في اللغة العربية',
+        'fa': 'آزمون تعیین سطح فارسی'
+    }
+    
+    current_title = titles.get(lang_code, f'{lang_code.upper()} Placement Test')
+    
     return render(request, 'languages/test.html', {
         'questions': questions,
-        'lang_code': lang_code
+        'lang_code': lang_code,
+        'test_title': current_title # Şablon için yeni başlık değişkeni
     })
-
 def evaluate_test(request, lang_code):
     if request.method == 'POST':
         questions = Question.objects.filter(language_code=lang_code.lower())
         score = 0
-        total_questions = questions.count()
         
-        # Formdan gelen cevapları kontrol et
         for question in questions:
-            # HTML'de name="question_1" gibi atamıştık
             user_answer = request.POST.get(f'question_{question.id}')
             if user_answer == question.correct_answer:
                 score += 1
-                
-        # 15 soruya göre Seviye Belirleme Algoritması
+
+        # 🔥 SENİN İSTEDİĞİN 15 SORULUK SEVİYE ARALIKLARI:
         if score <= 3:
             level = 'A1'
         elif score <= 6:
@@ -36,24 +47,20 @@ def evaluate_test(request, lang_code):
             level = 'B2'
         else:
             level = 'C1'
-            
-        # Eğer kullanıcı giriş yapmışsa, seviyesini veritabanına KANITLA/KAYDET!
+
+        # Kullanıcının seviyesini güncelle veya yarat
         if request.user.is_authenticated:
-            user_lang, created = UserLanguageLevel.objects.get_or_create(
+            user_lang, created = UserLanguageLevel.objects.update_or_create(
                 user=request.user,
                 language_code=lang_code.lower(),
                 defaults={'level': level}
             )
-            if not created: # Eğer zaten varsa, yeni seviyeyle güncelle
-                user_lang.level = level
-                user_lang.save()
                 
         return render(request, 'languages/result.html', {
             'lang_code': lang_code.upper(),
             'level': level,
             'score': score,
-            'total': total_questions
+            'total': 15 # Toplam soru sayısı
         })
         
-    # Biri URL'ye elle /evaluate/ yazıp girmeye çalışırsa ana sayfaya at
     return redirect('index')

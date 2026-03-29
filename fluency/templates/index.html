@@ -8,12 +8,26 @@
             <div class="card border-0 shadow-lg p-4 text-white" style="background: linear-gradient(135.47deg, #1d1e5f 0%, #3558d4 100%); border-radius: 25px;">
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
-                        <h1 class="fw-bold">Merhaba, {{ user.username }}! 👋</h1>
-                        <p class="fs-5 opacity-75">Bugün yeni kelimeler keşfetmek için harika bir gün.</p>
+                        <h1 class="fw-bold">
+                            {% if target_lang_code == 'de' %} Hallo, {{ user.username }}! 🇩🇪
+                            {% elif target_lang_code == 'en' %} Hello, {{ user.username }}! 🇬🇧
+                            {% elif target_lang_code == 'kr' %} 안녕하세요, {{ user.username }}! 🇰🇷
+                            {% elif target_lang_code == 'ar' %} مرحباً, {{ user.username }}! 🇸🇦
+                            {% elif target_lang_code == 'fa' %} سلام, {{ user.username }}! 🇮🇷
+                            {% elif target_lang_code == 'fr' %} Bonjour, {{ user.username }}! 🇫🇷
+                            {% else %} Merhaba, {{ user.username }}! 👋
+                            {% endif %}
+                        </h1>
+                        <p class="fs-5 opacity-75">
+                            {% if target_lang_code == 'de' %} Heute ist ein großartiger Tag, um neue Wörter zu lernen.
+                            {% elif target_lang_code == 'en' %} Today is a great day to discover new words.
+                            {% else %} Bugün yeni kelimeler keşfetmek için harika bir gün.
+                            {% endif %}
+                        </p>
                     </div>
                     <div class="text-end d-none d-md-block">
                         <span class="badge rounded-pill bg-warning text-dark px-4 py-2 fs-6 shadow">
-                            🔥 {{ user_streak }} Günlük Seri!
+                            🔥 {{ user_streak|default:0 }} Günlük Seri!
                         </span>
                     </div>
                 </div>
@@ -27,14 +41,17 @@
             <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px;">
                 <h5 class="fw-bold text-muted mb-4">🎯 Mevcut Hedef</h5>
                 <div class="text-center">
-                    <div class="display-4 mb-2">🇫🇷</div>
-                    <h3 class="fw-bold text-dark">{{ target_lang_name }}</h3>
-                    <p class="badge bg-primary px-3 py-2 fs-6">Seviye: {{ user_level }}</p>
+                    <div class="display-4 mb-2">
+                        {% if target_lang_code == 'de' %}🇩🇪{% elif target_lang_code == 'en' %}🇬🇧{% elif target_lang_code == 'kr' %}🇰🇷{% elif target_lang_code == 'ar' %}🇸🇦{% elif target_lang_code == 'fa' %}🇮🇷{% elif target_lang_code == 'fr' %}🇫🇷{% else %}🌐{% endif %}
+                    </div>
+                    <h3 class="fw-bold text-dark">{{ target_lang_name|default:"Dil Seçilmedi" }}</h3>
+                    <p class="badge bg-primary px-3 py-2 fs-6">Seviye: {{ user_level|default:"A1" }}</p>
                 </div>
                 <hr>
                 <div class="d-grid gap-2">
+                    <!-- Okuma sayfasına giderken dili de parametre olarak gönderebilirsin -->
                     <a href="{% url 'wiki_reader' %}" class="btn btn-dark btn-lg rounded-pill fw-bold shadow-sm">
-                        Okumaya Başla 📖
+                        {% if target_lang_code == 'de' %}Lesen Başla 📖{% else %}Okumaya Başla 📖{% endif %}
                     </a>
                 </div>
             </div>
@@ -42,7 +59,7 @@
             <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 20px; background: #f8f9fa;">
                 <h6 class="text-muted fw-bold mb-0">Toplam Kaydedilen Kelime</h6>
                 <div class="display-5 fw-bold text-primary mt-2">
-                    {% if user_words %}{{ user_words.count }}{% else %}0{% endif %}
+                    {{ user_words.count|default:0 }}
                 </div>
             </div>
         </div>
@@ -105,10 +122,9 @@
 </div>
 
 <style>
-    /* Küçük dokunuşlar */
     body { background-color: #f4f7fe; }
     .card { transition: transform 0.3s ease; }
+    .card:hover { transform: translateY(-5px); }
     .table-hover tbody tr:hover { background-color: #f8faff !important; transform: scale(1.01); }
-    .bg-success-soft { background-color: #e8f5e9; color: #2e7d32; }
 </style>
 {% endblock %}
