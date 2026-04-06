@@ -2,7 +2,6 @@
 
 {% block content %}
 <div class="container mt-5">
-    <!-- Üst Karşılama Paneli -->
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card border-0 shadow-lg p-4 text-white" style="background: linear-gradient(135.47deg, #1d1e5f 0%, #3558d4 100%); border-radius: 25px;">
@@ -36,7 +35,6 @@
     </div>
 
     <div class="row g-4">
-        <!-- SOL KOLON: DİL DURUMU VE İSTATİSTİKLER -->
         <div class="col-lg-4">
             <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px;">
                 <h5 class="fw-bold text-muted mb-4">🎯 Mevcut Hedef</h5>
@@ -48,10 +46,21 @@
                     <p class="badge bg-primary px-3 py-2 fs-6">Seviye: {{ user_level|default:"A1" }}</p>
                 </div>
                 <hr>
-                <div class="d-grid gap-2">
-                    <!-- Okuma sayfasına giderken dili de parametre olarak gönderebilirsin -->
+                <div class="d-grid gap-3">
                     <a href="{% url 'wiki_reader' %}" class="btn btn-dark btn-lg rounded-pill fw-bold shadow-sm">
-                        {% if target_lang_code == 'de' %}Lesen Başla 📖{% else %}Okumaya Başla 📖{% endif %}
+                        {% if target_lang_code == 'de' %}Lesen Başla 📖
+                        {% elif target_lang_code == 'en' %}Start Reading 📖
+                        {% else %}Okumaya Başla 📖{% endif %}
+                    </a>
+                    
+                    <a href="/writing/" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+                        {% if target_lang_code == 'de' %}Schreiben Üben ✍️
+                        {% elif target_lang_code == 'en' %}Writing Practice ✍️
+                        {% elif target_lang_code == 'fr' %}Pratique de l'écrit ✍️
+                        {% elif target_lang_code == 'kr' %}쓰기 연습 ✍️
+                        {% elif target_lang_code == 'ar' %}ممارسة الكتابة ✍️
+                        {% elif target_lang_code == 'fa' %}تمرین نوشتن ✍️
+                        {% else %}Yazma Pratiği ✍️{% endif %}
                     </a>
                 </div>
             </div>
@@ -64,7 +73,6 @@
             </div>
         </div>
 
-        <!-- SAĞ KOLON: WIKIPEDIA'DAN KAYDEDİLEN KELİMELER -->
         <div class="col-lg-8">
             <div class="card border-0 shadow-sm p-4 h-100" style="border-radius: 20px;">
                 <div class="d-flex justify-content-between align-items-center mb-4">

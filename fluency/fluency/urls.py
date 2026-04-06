@@ -1,6 +1,6 @@
 from django.contrib import admin
-from django.urls import path, include
-from languages import views
+from django.urls import path, include  # include eklendi
+from languages import views            # languages views eklendi
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -12,4 +12,8 @@ urlpatterns = [
     
     # Wikipedia ve Sözlük Modülü
     path('vocab/', include('vocabulary.urls')),
+    
+    # Yazma Pratiği Modülü (lang_views karmaşası düzeltildi, hepsi tek views'ten çekiliyor)
+    path('writing/', views.writing_practice, name='writing_practice'),
+    path('check-writing/', views.check_writing, name='check_writing')
 ]

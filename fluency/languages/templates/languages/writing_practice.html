@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg p-4 border-0" style="border-radius: 20px;">
+        <h2 class="fw-bold mb-4 text-primary">✍️ {{ target_lang_name }} Yazma Pratiği</h2>
+        
+        <div id="editor" style="height: 300px; font-size: 18px; border-radius: 15px;"></div>
+        
+        <div class="mt-4 d-flex justify-content-between align-items-center">
+            <button id="check-btn" class="btn btn-dark btn-lg rounded-pill px-5 shadow">Kontrol Et</button>
+            <div id="status-spinner" class="spinner-border text-primary d-none" role="status"></div>
+        </div>
+
+        <div id="results" class="mt-5 d-none">
+            <h4 class="fw-bold border-bottom pb-2">Analiz Sonuçları</h4>
+            <div id="error-list" class="list-group mt-3"></div>
+        </div>
+    </div>
+</div>
+
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
+
+<script>
+    var quill = new Quill('#editor', { theme: 'snow' });
+
+    document.getElementById('check-btn').addEventListener('click', function() {
+        const text = quill.getText();
+        const btn = this;
+        const spinner = document.getElementById('status-spinner');
+        
+        btn.disabled = true;
+        spinner.classList.remove('d-none');
+
+        fetch("{% url 'check_writing' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ text: text })
+        })
+        .then(res => res.json())
+        .then(data => {
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            showResults(data.matches);
+        });
+    });
+
+    function showResults(matches) {
+        const container = document.getElementById('results');
+        const list = document.getElementById('error-list');
+        list.innerHTML = "";
+        container.classList.remove('d-none');
+
+        if (matches.length === 0) {
+            list.innerHTML = "<div class='alert alert-success'>Harika! Hiç hata bulunamadı. ✨</div>";
+            return;
+        }
+
+        matches.forEach(match => {
+            const item = `
+                <div class="list-group-item border-0 shadow-sm mb-2 rounded-3 bg-light">
+                    <p class="text-danger fw-bold mb-1">Hata: ${match.message}</p>
+                    <p class="text-muted small mb-1">Cümle: ...${match.context.text.substring(match.context.offset, match.context.offset + match.context.length)}...</p>
+                    <span class="badge bg-success">Öneri: ${match.replacements.slice(0, 3).map(r => r.value).join(', ')}</span>
+                </div>
+            `;
+            list.innerHTML += item;
+        });
+    }
+</script>
+{% endblock %}
