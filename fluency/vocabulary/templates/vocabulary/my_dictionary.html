@@ -3,32 +3,111 @@
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card border-0 shadow-lg p-4" style="border-radius: 20px;">
-                <h2 class="fw-bold mb-4 text-center text-primary">📚 Kişisel Sözlüğüm</h2>
-                <p class="text-muted text-center mb-4">Wikipedia okurken kaydettiğin tüm kelimeler burada birikiyor.</p>
+        <div class="col-md-10">
+            
+            <div class="card border-0 shadow-lg p-4 mb-4" style="border-radius: 20px; background: white;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="fw-bold text-primary mb-1">📚 Kişisel Sözlük & Gelişim</h2>
+                        <p class="text-muted mb-0">Hatalarından öğren ve kelime dağarcığını geliştir.</p>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge bg-primary rounded-pill px-3 py-2 fs-6">{{ words|length }} Kelime</span>
+                        <span class="badge bg-danger rounded-pill px-3 py-2 fs-6">{{ writing_errors|length }} Hata</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm p-4 mb-5" style="border-radius: 20px; background-color: #fffcfc;">
+                <h4 class="fw-bold mb-4 text-danger"><i class="bi bi-pencil-eraser me-2"></i>Yazma Pratiği Hatalarım</h4>
                 
                 <div class="list-group">
-                    {% for word in words %}
-                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-3 mb-2 rounded-3 shadow-sm" style="border: 1px solid #e9ecef;">
-                        <div>
-                            <span class="badge bg-secondary me-2">{{ word.language|upper }}</span>
-                            <span class="fs-5 fw-bold text-dark">{{ word.word }}</span>
+                    {% for error in writing_errors %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center p-3 mb-2 rounded-4 border-0 shadow-sm" style="background: white;">
+                        <div class="d-flex align-items-center">
+                            <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-3 fw-bold text-decoration-line-through">
+                                {{ error.input_text }}{{ error.wrong_word }}{{ error.word }}
+                            </span>
+                            
+                            <i class="bi bi-arrow-right-short mx-3 fs-4 text-muted"></i>
+                            
+                            <span class="badge bg-success text-white px-3 py-2 rounded-3 fw-bold">
+                                {{ error.corrected_text }}{{ error.correct_word }}
+                            </span>
+                            
+                            {% if error.error_type %}
+                            <span class="ms-3 badge bg-light text-dark border small">{{ error.error_type }}</span>
+                            {% endif %}
                         </div>
-                        <div class="text-success fw-bold fs-5">
-                            {{ word.turkish_meaning }}
+                        <div class="text-end">
+                            <small class="text-muted d-block fw-bold">{{ error.created_at|date:"d.m.Y" }}</small>
                         </div>
                     </div>
                     {% empty %}
-                    <div class="text-center p-5 text-muted">
-                        <h5>Henüz hiç kelime kaydetmedin.</h5>
-                        <a href="{% url 'wiki_reader' %}" class="btn btn-warning mt-3 rounded-pill fw-bold">Keşfetmeye Başla 🚀</a>
+                    <div class="text-center py-4">
+                        <p class="text-muted">Henüz kayıtlı bir yazma hatası bulunmuyor. Devam et! 🚀</p>
                     </div>
                     {% endfor %}
                 </div>
-                
             </div>
+
+            <div class="card border-0 shadow-sm p-4" style="border-radius: 20px;">
+                <h4 class="fw-bold mb-4 text-primary"><i class="bi bi-book me-2"></i>Wikipedia'dan Kaydedilenler</h4>
+                
+                <div class="list-group">
+                    {% for word in words %}
+                    <div class="list-group-item p-3 mb-3 rounded-4 shadow-sm border-0" style="background-color: #f8f9fa;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-dark mb-2">{{ word.language|upper }}</span><br>
+                                <span class="fs-5 fw-bold">{{ word.word }}</span>
+                                <span class="mx-2 text-muted">→</span>
+                                <span class="text-success fw-bold fs-5">{{ word.turkish_meaning }}</span>
+                            </div>
+                            
+                            <div class="text-end">
+                                <select class="form-select form-select-sm border-0 shadow-sm fw-bold status-select" 
+                                        data-word-id="{{ word.id }}"
+                                        style="border-radius: 10px; min-width: 150px;">
+                                    <option value="not_learned" {% if word.status == 'not_learned' %}selected{% endif %}>❌ Öğrenemedim</option>
+                                    <option value="review" {% if word.status == 'review' %}selected{% endif %}>⏳ Tekrar Et</option>
+                                    <option value="learned" {% if word.status == 'learned' %}selected{% endif %}>✅ Öğrendim</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-2 pt-2 border-top d-flex justify-content-between">
+                            <small class="text-muted">Eklenme: {{ word.updated_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
+
+<script>
+document.querySelectorAll('.status-select').forEach(select => {
+    select.addEventListener('change', function() {
+        const wordId = this.getAttribute('data-word-id');
+        const newStatus = this.value;
+
+        fetch(`/vocab/update-status/${wordId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `status=${newStatus}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload(); 
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

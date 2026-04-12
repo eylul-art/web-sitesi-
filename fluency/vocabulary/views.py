@@ -2,11 +2,12 @@ import requests
 import json
 import re
 import urllib.parse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from .models import SavedWord
+from languages.models import WritingErrorLog 
 
 def wiki_reader(request):
     """Wikipedia'dan tam HTML çeken ve akıllı arama yapan modül"""
@@ -87,14 +88,11 @@ def save_word_ajax(request):
             clean_word = re.sub(r'[^\w\s]', '', clicked_word).strip()
             
             if clean_word:
-                # 1. Kelime zaten kaydedilmiş mi kontrol et
                 existing_word = SavedWord.objects.filter(user=request.user, word=clean_word, language=lang).first()
                 if existing_word:
-                    # Eskiden çevirisiz kaydedildiyse boş kalmaması için önlem:
                     anlam = existing_word.turkish_meaning if existing_word.turkish_meaning else "Zaten listede"
                     return JsonResponse({'status': 'info', 'word': clean_word, 'meaning': anlam, 'message': 'Zaten sözlüğünde var!'})
                 
-                # 2. ÜCRETSİZ ÇEVİRİ API'Sİ (MyMemory) ÇALIŞIYOR
                 translation = "Çeviri bulunamadı"
                 try:
                     trans_url = f"https://api.mymemory.translated.net/get?q={clean_word}&langpair={lang}|tr"
@@ -105,13 +103,11 @@ def save_word_ajax(request):
                         if resp_data and isinstance(resp_data, dict):
                             translation = resp_data.get('translatedText', 'Çeviri bulunamadı')
                 except Exception as e:
-                    print("Çeviri Hatası:", e) # Terminalde hatayı görmek için
+                    print("Çeviri Hatası:", e) 
                     pass 
 
-                # 3. Çevirisiyle birlikte Veritabanına kaydet
                 SavedWord.objects.create(user=request.user, word=clean_word, turkish_meaning=translation, language=lang)
                 
-                # JS'nin beklediği "meaning" anahtarını gönderiyoruz!
                 return JsonResponse({'status': 'success', 'word': clean_word, 'meaning': translation})
                 
             return JsonResponse({'status': 'error', 'message': 'Geçersiz kelime.'})
@@ -119,8 +115,41 @@ def save_word_ajax(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'Geçersiz istek türü.'})
 
+
 @login_required
 def my_dictionary(request):
-    """Kullanıcının kaydettiği kelimeleri ve çevirilerini profilinde listeler."""
-    words = SavedWord.objects.filter(user=request.user).order_by('-added_at')
-    return render(request, 'vocabulary/my_dictionary.html', {'words': words})
+    """Kullanıcının kaydettiği kelimeleri ve yazma hatalarını profilinde listeler."""
+    words = SavedWord.objects.filter(user=request.user).order_by('-updated_at')
+    writing_errors = WritingErrorLog.objects.filter(user=request.user).order_by('-created_at')
+
+    return render(request, 'vocabulary/my_dictionary.html', {
+        'words': words,
+        'writing_errors': writing_errors
+    })
+
+
+@login_required
+@csrf_exempt
+def update_status(request, word_id):
+    """AJAX ile kelime durumunu günceller. İsim urls.py ile eşitlendi."""
+    if request.method == 'POST':
+        # AJAX'tan gelen veriyi al
+        new_status = request.POST.get('status')
+        
+        # Eğer veri body'den JSON olarak geliyorsa
+        if not new_status:
+            try:
+                data = json.loads(request.body)
+                new_status = data.get('status')
+            except:
+                pass
+
+        try:
+            word = SavedWord.objects.get(id=word_id, user=request.user)
+            word.status = new_status
+            word.save() # updated_at otomatik güncellenir
+            return JsonResponse({'status': 'success', 'new_status': new_status})
+        except SavedWord.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Kelime bulunamadı'}, status=404)
+            
+    return JsonResponse({'status': 'error', 'message': 'Geçersiz istek'}, status=400)

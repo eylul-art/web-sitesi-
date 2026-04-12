@@ -10,4 +10,5 @@ urlpatterns = [
     
     # 🔥 İŞTE BURASI: Hata veren 'my_dictionary' ismi tam olarak burada tanımlı
     path('dictionary/', views.my_dictionary, name='my_dictionary'),
+    path('update-status/<int:word_id>/', views.update_status, name='update_status'),
 ]
