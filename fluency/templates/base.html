@@ -133,8 +133,8 @@
                             {% if user_languages %}
                                 {% for lang in user_languages %}
                                 <li>
-                                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="/dashboard/?lang={{ lang.language_code }}">
-                                        <span>{{ lang.get_language_code_display|default:lang.language_code|upper }}</span>
+                                    <a class="dropdown-item d-flex justify-content-between align-items-center" href="{% url 'set_active_language' lang.id %}">
+                                        <span class="fw-bold">{{ lang.get_language_code_display|default:lang.language_code|upper }}</span>
                                         <span class="badge bg-primary rounded-pill small">{{ lang.level }}</span>
                                     </a>
                                 </li>
@@ -146,7 +146,7 @@
                             <li><hr class="dropdown-divider"></li>
                             
                             <li>
-                                <a class="dropdown-item text-primary fw-bold" href="/select-language/">
+                                <a class="dropdown-item text-primary fw-bold" href="{% url 'add_new_language' %}">
                                     <i class="bi bi-plus-circle me-2"></i>Yeni Ders Ekle
                                 </a>
                             </li>
@@ -154,7 +154,7 @@
                     </li>
                     
                     <li class="nav-item">
-                        <a class="nav-link px-3 fw-bold text-warning" href="/writing/">✍️ Yazma Pratiği</a>
+                        <a class="nav-link px-3 fw-bold text-warning" href="{% url 'writing_practice' %}">✍️ Yazma Pratiği</a>
                     </li>
 
                     <li class="nav-item">
