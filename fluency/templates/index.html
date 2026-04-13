@@ -8,18 +8,19 @@
                 <div class="d-flex align-items-center justify-content-between">
                     <div>
                         <h1 class="fw-bold">
-                            {% if target_lang_code == 'de' %} Hallo, {{ user.username }}! 🇩🇪
-                            {% elif target_lang_code == 'en' %} Hello, {{ user.username }}! 🇬🇧
-                            {% elif target_lang_code == 'kr' %} 안녕하세요, {{ user.username }}! 🇰🇷
-                            {% elif target_lang_code == 'ar' %} مرحباً, {{ user.username }}! 🇸🇦
-                            {% elif target_lang_code == 'fa' %} سلام, {{ user.username }}! 🇮🇷
-                            {% elif target_lang_code == 'fr' %} Bonjour, {{ user.username }}! 🇫🇷
+                            {% if active_lang.language_code == 'de' %} Hallo, {{ user.username }}! 🇩🇪
+                            {% elif active_lang.language_code == 'en' %} Hello, {{ user.username }}! 🇬🇧
+                            {% elif active_lang.language_code == 'kr' %} 안녕하세요, {{ user.username }}! 🇰🇷
+                            {% elif active_lang.language_code == 'ar' %} مرحباً, {{ user.username }}! 🇸🇦
+                            {% elif active_lang.language_code == 'fa' %} سلام, {{ user.username }}! 🇮🇷
+                            {% elif active_lang.language_code == 'fr' %} Bonjour, {{ user.username }}! 🇫🇷
                             {% else %} Merhaba, {{ user.username }}! 👋
                             {% endif %}
                         </h1>
                         <p class="fs-5 opacity-75">
-                            {% if target_lang_code == 'de' %} Heute ist ein großartiger Tag, um neue Wörter zu lernen.
-                            {% elif target_lang_code == 'en' %} Today is a great day to discover new words.
+                            {% if active_lang.language_code == 'de' %} Heute ist ein großartiger Tag, um neue Wörter zu lernen.
+                            {% elif active_lang.language_code == 'en' %} Today is a great day to discover new words.
+                            {% elif active_lang.language_code == 'fr' %} Aujourd'hui est un grand jour pour découvrir de nouveaux mots.
                             {% else %} Bugün yeni kelimeler keşfetmek için harika bir gün.
                             {% endif %}
                         </p>
@@ -36,33 +37,52 @@
 
     <div class="row g-4">
         <div class="col-lg-4">
+            
             <div class="card border-0 shadow-sm p-4 mb-4" style="border-radius: 20px;">
                 <h5 class="fw-bold text-muted mb-4">🎯 Mevcut Hedef</h5>
-                <div class="text-center">
-                    <div class="display-4 mb-2">
-                        {% if target_lang_code == 'de' %}🇩🇪{% elif target_lang_code == 'en' %}🇬🇧{% elif target_lang_code == 'kr' %}🇰🇷{% elif target_lang_code == 'ar' %}🇸🇦{% elif target_lang_code == 'fa' %}🇮🇷{% elif target_lang_code == 'fr' %}🇫🇷{% else %}🌐{% endif %}
+                
+                {% if active_lang %}
+                    <div class="text-center">
+                        <div class="display-4 mb-2">
+                            {% if active_lang.language_code == 'de' %}🇩🇪
+                            {% elif active_lang.language_code == 'en' %}🇬🇧
+                            {% elif active_lang.language_code == 'kr' %}🇰🇷
+                            {% elif active_lang.language_code == 'ar' %}🇸🇦
+                            {% elif active_lang.language_code == 'fa' %}🇮🇷
+                            {% elif active_lang.language_code == 'fr' %}🇫🇷
+                            {% else %}🌐{% endif %}
+                        </div>
+                        <h3 class="fw-bold text-dark">
+                            {{ active_lang.get_language_code_display|default:active_lang.language_code|upper }}
+                        </h3>
+                        <p class="badge bg-primary px-3 py-2 fs-6">Seviye: {{ active_lang.level }}</p>
                     </div>
-                    <h3 class="fw-bold text-dark">{{ target_lang_name|default:"Dil Seçilmedi" }}</h3>
-                    <p class="badge bg-primary px-3 py-2 fs-6">Seviye: {{ user_level|default:"A1" }}</p>
-                </div>
-                <hr>
-                <div class="d-grid gap-3">
-                    <a href="{% url 'wiki_reader' %}" class="btn btn-dark btn-lg rounded-pill fw-bold shadow-sm">
-                        {% if target_lang_code == 'de' %}Lesen Başla 📖
-                        {% elif target_lang_code == 'en' %}Start Reading 📖
-                        {% else %}Okumaya Başla 📖{% endif %}
-                    </a>
-                    
-                    <a href="/writing/" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
-                        {% if target_lang_code == 'de' %}Schreiben Üben ✍️
-                        {% elif target_lang_code == 'en' %}Writing Practice ✍️
-                        {% elif target_lang_code == 'fr' %}Pratique de l'écrit ✍️
-                        {% elif target_lang_code == 'kr' %}쓰기 연습 ✍️
-                        {% elif target_lang_code == 'ar' %}ممارسة الكتابة ✍️
-                        {% elif target_lang_code == 'fa' %}تمرین نوشتن ✍️
-                        {% else %}Yazma Pratiği ✍️{% endif %}
-                    </a>
-                </div>
+                    <hr>
+                    <div class="d-grid gap-3">
+                        <a href="{% url 'wiki_reader' %}" class="btn btn-dark btn-lg rounded-pill fw-bold shadow-sm">
+                            {% if active_lang.language_code == 'de' %}Lesen Başla 📖
+                            {% elif active_lang.language_code == 'en' %}Start Reading 📖
+                            {% else %}Okumaya Başla 📖{% endif %}
+                        </a>
+                        
+                        <a href="{% url 'writing_practice' %}" class="btn btn-primary btn-lg rounded-pill fw-bold shadow-sm">
+                            {% if active_lang.language_code == 'de' %}Schreiben Üben ✍️
+                            {% elif active_lang.language_code == 'en' %}Writing Practice ✍️
+                            {% elif active_lang.language_code == 'fr' %}Pratique de l'écrit ✍️
+                            {% elif active_lang.language_code == 'kr' %}쓰기 연습 ✍️
+                            {% elif active_lang.language_code == 'ar' %}ممارسة الكتابة ✍️
+                            {% elif active_lang.language_code == 'fa' %}تمرین نوشتن ✍️
+                            {% else %}Yazma Pratiği ✍️{% endif %}
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="text-center my-4 py-3">
+                        <p class="text-muted fs-5">Henüz aktif bir dersin yok.</p>
+                        <a href="{% url 'add_new_language' %}" class="btn btn-warning rounded-pill fw-bold px-4 py-2">
+                            <i class="bi bi-plus-circle me-1"></i> Yeni Ders Ekle
+                        </a>
+                    </div>
+                {% endif %}
             </div>
 
             <div class="card border-0 shadow-sm p-4 text-center" style="border-radius: 20px; background: #f8f9fa;">

@@ -38,31 +38,45 @@ def logout_view(request):
 
 def index(request):
     context = {}
-    lang_names = {
-        'en': 'İngilizce', 'fr': 'Fransızca', 'de': 'Almanca', 
-        'kr': 'Korece', 'fa': 'Farsça', 'ar': 'Arapça'
-    }
 
     if request.user.is_authenticated:
-        # Kullanıcının dil seviyesi objesini alıyoruz
-        user_level_obj = UserLanguageLevel.objects.filter(user=request.user).first()
+        # 1. KULLANICININ KAYDETTİĞİ KELİMELERİ AL (Sağ taraftaki liste için)
+        # Not: Modelde tarihi updated_at olarak tuttuğumuz için ona göre sıralıyoruz
+        user_words = SavedWord.objects.filter(user=request.user).order_by('-updated_at')
+        context['user_words'] = user_words[:5] 
         
-        if user_level_obj and user_level_obj.language_code:
-            # Kullanıcının GERÇEK seçimi (Küçük harfe zorla: 'de', 'fr' vb.)
-            current_lang = user_level_obj.language_code.lower()
-            context['target_lang_code'] = current_lang
-            context['target_lang_name'] = lang_names.get(current_lang, "Dil Seçildi")
-            context['user_level'] = user_level_obj.level
-        else:
-            # Eğer kullanıcı hiç dil seçmediyse, boş bırakalım ki arayüzde 'Dil Seç' uyarısı çıksın
-            # Veya senin istediğin gibi güvenli bir varsayılan (Örn: 'de')
-            context['target_lang_code'] = None 
-            context['target_lang_name'] = "Seçilmedi"
-            context['user_level'] = "A1"
+        # 2. KULLANICININ DERSLERİNİ AL (Menü için)
+        user_langs = UserLanguageLevel.objects.filter(user=request.user)
 
-        # Wikipedia'dan kaydedilen kelimeler (Kullanıcıya özel)
-        context['user_words'] = SavedWord.objects.filter(user=request.user).order_by('-added_at')[:5]
-    
+        # 🔥 OTOMATİK DERS OLUŞTURMA: Eğer ders tablosu boşsa ama kelime kaydettiyse
+        if not user_langs.exists() and user_words.exists():
+            ilk_kelime = user_words.first()
+            UserLanguageLevel.objects.create(
+                user=request.user,
+                language_code=ilk_kelime.language,
+                level='A1' # Varsayılan olarak A1 atıyoruz
+            )
+            # Listeyi veritabanından tekrar güncelleyelim
+            user_langs = UserLanguageLevel.objects.filter(user=request.user)
+
+        context['user_languages'] = user_langs
+
+        # 3. AKTİF DİLİ BELİRLE (Anasayfadaki Sol Kart İçin)
+        active_lang_id = request.session.get('active_lang_id')
+        
+        if active_lang_id:
+            active_lang = user_langs.filter(id=active_lang_id).first()
+        else:
+            # Session boşsa kullanıcının ilk dersini aktif dil yap
+            active_lang = user_langs.first()
+            if active_lang:
+                request.session['active_lang_id'] = active_lang.id
+                request.session['active_lang_code'] = active_lang.language_code
+
+        # Değişkenleri HTML'e gönder
+        context['active_lang'] = active_lang
+        context['user_streak'] = 0 
+
     return render(request, "index.html", context)
 
 # --- PROFİL SAYFASI ---
@@ -98,7 +112,8 @@ def placement_test(request):
     if user_level and user_level.language_code:
         target_lang = user_level.language_code.lower()
     else:
-        target_lang = 'de' # Burayı 'de' yaptım çünkü Almanca istiyordun
+        target_lang = 'de' 
         
-    print(f"DEBUG: Test yönlendiriliyor. Dil: {target_lang}") # Terminalde gör diye
-    return redirect('start_test', lang_code=target_lang)
+    print(f"DEBUG: Test yönlendiriliyor. Dil: {target_lang}") 
+    # DİKKAT: urls.py'daki değişikliğe uygun olarak start_test -> start_placement_test yapıldı
+    return redirect('start_placement_test', lang_code=target_lang)

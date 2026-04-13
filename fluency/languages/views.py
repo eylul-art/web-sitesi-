@@ -7,6 +7,25 @@ from .models import Question, WritingErrorLog
 from users.models import UserLanguageLevel
 from django.contrib import messages
 
+# --- DERSLERİM (ÇOKLU DİL) YÖNETİMİ ---
+
+@login_required
+def set_active_language(request, lang_id):
+    """Kullanıcı dropdown'dan bir dil seçtiğinde onu aktif yapar"""
+    lang = get_object_or_404(UserLanguageLevel, id=lang_id, user=request.user)
+    
+    # Session'a kaydediyoruz ki sitenin geri kalanı bu dili bilsin
+    request.session['active_lang_id'] = lang.id
+    request.session['active_lang_code'] = lang.language_code
+    
+    return redirect('/') # Ana sayfaya (veya dashboard'a) yönlendir
+
+@login_required
+def add_new_language(request):
+    """Yeni dil seçme (kurulum) sayfasına gönderir"""
+    return render(request, 'languages/select_language.html')
+
+
 # --- MEVCUT TEST SİSTEMİ ---
 
 def start_placement_test(request, lang_code):
@@ -48,11 +67,14 @@ def evaluate_test(request, lang_code):
         else: level = 'C1'
 
         if request.user.is_authenticated:
-            UserLanguageLevel.objects.update_or_create(
+            new_lang, created = UserLanguageLevel.objects.update_or_create(
                 user=request.user,
                 language_code=lang_code.lower(),
                 defaults={'level': level}
             )
+            # Testi bitirince o dili otomatik aktif yapalım
+            request.session['active_lang_id'] = new_lang.id
+            request.session['active_lang_code'] = new_lang.language_code
                 
         return render(request, 'languages/result.html', {
             'lang_code': lang_code.upper(),
@@ -64,13 +86,17 @@ def evaluate_test(request, lang_code):
     return redirect('index')
 
 
-# --- YENİ: YAZMA VE DOĞRULAMA MODÜLÜ (LanguageTool) ---
+# --- YAZMA VE DOĞRULAMA MODÜLÜ (LanguageTool) ---
 
 @login_required
 def writing_practice(request):
-    """Kullanıcının metin girdiği ana sayfa"""
-    user_level_obj = UserLanguageLevel.objects.filter(user=request.user).first()
-    lang_code = user_level_obj.language_code if user_level_obj else 'en'
+    """Kullanıcının metin girdiği ana sayfa (Artık Aktif Dile Göre Çalışıyor)"""
+    # Önce session'da aktif bir dil var mı diye bakıyoruz, yoksa kullanıcının ilk dilini alıyoruz
+    lang_code = request.session.get('active_lang_code')
+    
+    if not lang_code:
+        user_level_obj = UserLanguageLevel.objects.filter(user=request.user).first()
+        lang_code = user_level_obj.language_code if user_level_obj else 'en'
     
     lang_display = {
         'de': 'Almanca', 'en': 'İngilizce', 'fr': 'Fransızca',
@@ -84,16 +110,19 @@ def writing_practice(request):
 
 @login_required
 def check_writing(request):
-    """LanguageTool API ile asenkron gramer kontrolü"""
+    """LanguageTool API ile asenkron gramer kontrolü (Aktif Dile Göre)"""
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             text = data.get('text', '')
             
-            user_level_obj = UserLanguageLevel.objects.filter(user=request.user).first()
-            lang_code = user_level_obj.language_code if user_level_obj else 'en'
+            # Yazma sayfasındaki gibi dinamik dil tespiti
+            lang_code = request.session.get('active_lang_code')
+            if not lang_code:
+                user_level_obj = UserLanguageLevel.objects.filter(user=request.user).first()
+                lang_code = user_level_obj.language_code if user_level_obj else 'en'
 
-            # LanguageTool API Dil Kodları Eşleştirmesi (KR -> KO gibi)
+            # LanguageTool API Dil Kodları Eşleştirmesi
             lt_langs = {'en': 'en-US', 'de': 'de-DE', 'fr': 'fr', 'ar': 'ar', 'fa': 'fa', 'kr': 'ko'}
             target_lang = lt_langs.get(lang_code, lang_code)
 
@@ -108,11 +137,11 @@ def check_writing(request):
             # --- HATA DEFTERİNE KAYIT (LOGGING) ---
             if results.get('matches'):
                 for match in results['matches']:
-                    # Hatalı olan kısmı metinden çekiyoruz
                     offset = match['offset']
                     length = match['length']
                     faulty_text = text[offset : offset + length]
                     
+                    # Eğer modelinde alan isimleri farklıysa (örn: wrong_word) burayı modele göre güncelle
                     WritingErrorLog.objects.create(
                         user=request.user,
                         language_code=lang_code,
