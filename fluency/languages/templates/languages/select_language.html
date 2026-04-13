@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Yeni Ders Ekle{% endblock %}
+
+{% block content %}
+<div class="container mt-4 mb-5">
+    <div class="text-center mb-5">
+        <h1 class="fw-bold text-white mb-3">Yeni Bir Dil Keşfet 🌍</h1>
+        <p class="text-white-50 fs-5">Hangi dili öğrenmek istiyorsun? Seçimini yap ve seviye belirleme testine başla.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+        
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-lg h-100 lang-card" onclick="location.href='{% url 'start_placement_test' 'en' %}'">
+                <div class="card-body text-center p-4">
+                    <div class="display-1 mb-3">🇬🇧</div>
+                    <h4 class="fw-bold text-dark mb-1">İngilizce</h4>
+                    <p class="text-muted small">English</p>
+                    <a href="{% url 'start_placement_test' 'en' %}" class="btn btn-primary rounded-pill w-100 fw-bold mt-3">Teste Başla 🚀</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-lg h-100 lang-card" onclick="location.href='{% url 'start_placement_test' 'fr' %}'">
+                <div class="card-body text-center p-4">
+                    <div class="display-1 mb-3">🇫🇷</div>
+                    <h4 class="fw-bold text-dark mb-1">Fransızca</h4>
+                    <p class="text-muted small">Français</p>
+                    <a href="{% url 'start_placement_test' 'fr' %}" class="btn btn-primary rounded-pill w-100 fw-bold mt-3">Teste Başla 🚀</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-lg h-100 lang-card" onclick="location.href='{% url 'start_placement_test' 'de' %}'">
+                <div class="card-body text-center p-4">
+                    <div class="display-1 mb-3">🇩🇪</div>
+                    <h4 class="fw-bold text-dark mb-1">Almanca</h4>
+                    <p class="text-muted small">Deutsch</p>
+                    <a href="{% url 'start_placement_test' 'de' %}" class="btn btn-primary rounded-pill w-100 fw-bold mt-3">Teste Başla 🚀</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-lg h-100 lang-card" onclick="location.href='{% url 'start_placement_test' 'kr' %}'">
+                <div class="card-body text-center p-4">
+                    <div class="display-1 mb-3">🇰🇷</div>
+                    <h4 class="fw-bold text-dark mb-1">Korece</h4>
+                    <p class="text-muted small">한국어</p>
+                    <a href="{% url 'start_placement_test' 'kr' %}" class="btn btn-primary rounded-pill w-100 fw-bold mt-3">Teste Başla 🚀</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-lg h-100 lang-card" onclick="location.href='{% url 'start_placement_test' 'ar' %}'">
+                <div class="card-body text-center p-4">
+                    <div class="display-1 mb-3">🇸🇦</div>
+                    <h4 class="fw-bold text-dark mb-1">Arapça</h4>
+                    <p class="text-muted small">العربية</p>
+                    <a href="{% url 'start_placement_test' 'ar' %}" class="btn btn-primary rounded-pill w-100 fw-bold mt-3">Teste Başla 🚀</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 col-lg-3">
+            <div class="card border-0 shadow-lg h-100 lang-card" onclick="location.href='{% url 'start_placement_test' 'fa' %}'">
+                <div class="card-body text-center p-4">
+                    <div class="display-1 mb-3">🇮🇷</div>
+                    <h4 class="fw-bold text-dark mb-1">Farsça</h4>
+                    <p class="text-muted small">فارسی</p>
+                    <a href="{% url 'start_placement_test' 'fa' %}" class="btn btn-primary rounded-pill w-100 fw-bold mt-3">Teste Başla 🚀</a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+    /* Kartların üzerine gelince yukarı kalkma ve gölge efekti */
+    .lang-card {
+        border-radius: 20px; 
+        transition: all 0.3s ease; 
+        cursor: pointer;
+        background-color: rgba(255, 255, 255, 0.95);
+    }
+    .lang-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.3) !important;
+        background-color: #ffffff;
+    }
+</style>
+{% endblock %}
