@@ -14,11 +14,11 @@ def set_active_language(request, lang_id):
     """Kullanıcı dropdown'dan bir dil seçtiğinde onu aktif yapar"""
     lang = get_object_or_404(UserLanguageLevel, id=lang_id, user=request.user)
     
-    # Session'a kaydediyoruz ki sitenin geri kalanı bu dili bilsin
+    
     request.session['active_lang_id'] = lang.id
     request.session['active_lang_code'] = lang.language_code
     
-    return redirect('/') # Ana sayfaya (veya dashboard'a) yönlendir
+    return redirect('/') 
 
 @login_required
 def add_new_language(request):
@@ -51,7 +51,7 @@ def start_placement_test(request, lang_code):
 
 def evaluate_test(request, lang_code):
     if request.method == 'POST':
-        # Sadece o dildeki soruları çek
+        
         questions = Question.objects.filter(language_code=lang_code.lower())
         score = 0
         
@@ -72,7 +72,7 @@ def evaluate_test(request, lang_code):
                 language_code=lang_code.lower(),
                 defaults={'level': level}
             )
-            # Testi bitirince o dili otomatik aktif yapalım
+            
             request.session['active_lang_id'] = new_lang.id
             request.session['active_lang_code'] = new_lang.language_code
                 
@@ -116,17 +116,17 @@ def check_writing(request):
             data = json.loads(request.body)
             text = data.get('text', '')
             
-            # Yazma sayfasındaki gibi dinamik dil tespiti
+            
             lang_code = request.session.get('active_lang_code')
             if not lang_code:
                 user_level_obj = UserLanguageLevel.objects.filter(user=request.user).first()
                 lang_code = user_level_obj.language_code if user_level_obj else 'en'
 
-            # LanguageTool API Dil Kodları Eşleştirmesi
+            
             lt_langs = {'en': 'en-US', 'de': 'de-DE', 'fr': 'fr', 'ar': 'ar', 'fa': 'fa', 'kr': 'ko'}
             target_lang = lt_langs.get(lang_code, lang_code)
 
-            # API İsteği
+            
             response = requests.post(
                 "https://api.languagetool.org/v2/check",
                 data={'text': text, 'language': target_lang}
@@ -141,7 +141,7 @@ def check_writing(request):
                     length = match['length']
                     faulty_text = text[offset : offset + length]
                     
-                    # Eğer modelinde alan isimleri farklıysa (örn: wrong_word) burayı modele göre güncelle
+                    
                     WritingErrorLog.objects.create(
                         user=request.user,
                         language_code=lang_code,
