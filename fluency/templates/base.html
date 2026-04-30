@@ -18,33 +18,47 @@
             flex-direction: column;
         }
 
+        /* Navbar Arka Planı */
         .navbar {
-            background: rgba(255, 255, 255, 0.1) !important;
+            background: rgba(255, 255, 255, 0.2) !important; /* Biraz daha belirgin yaptık */
             backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             padding: 0.8rem 0;
         }
 
+        /* Logoyu Siyah Yaptık */
         .navbar-brand {
             font-weight: 700;
             font-size: 1.6rem;
-            color: #fff !important;
+            color: #212529 !important; /* Koyu Siyah */
         }
 
         .navbar-brand span {
-            color: #ffd700;
+            color: #5a3791; /* 'cy' kısmını mor tonu yaptık */
         }
 
+        /* Menü Linklerini Siyah Yaptık */
         .nav-link {
-            color: rgba(255, 255, 255, 0.8) !important;
-            font-weight: 500;
+            color: #212529 !important; /* Net Siyah */
+            font-weight: 600;
             transition: 0.3s;
             border-radius: 10px;
         }
 
         .nav-link:hover {
-            color: #ffd700 !important;
-            background: rgba(255, 255, 255, 0.1);
+            color: #5a3791 !important; /* Hoverda mor renk */
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Yazma Pratiği Yazısı */
+        .nav-link.text-warning {
+            color: #856404 !important; /* Daha koyu, okunabilir bir hardal/sarı */
+        }
+
+        /* Profil İsmi */
+        .profile-name {
+            color: #212529 !important;
+            font-weight: 600;
         }
 
         /* Dropdown Menü Stili */
@@ -84,6 +98,19 @@
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
+        /* Çıkış Butonu Siyah Çerçeveli */
+        .btn-logout {
+            border: 1.5px solid #212529 !important;
+            color: #212529 !important;
+            border-radius: 50px;
+            font-weight: 600;
+        }
+
+        .btn-logout:hover {
+            background: #212529 !important;
+            color: #fff !important;
+        }
+
         .main-content {
             flex: 1;
             display: flex;
@@ -99,8 +126,8 @@
         .profile-circle {
             width: 35px;
             height: 35px;
-            background: #ffd700;
-            color: #5a3791;
+            background: #5a3791; /* Mor arka plan */
+            color: #ffd700; /* Sarı harf */
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -112,7 +139,8 @@
 
 <body>
 
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+    <!-- navbar-dark yerine navbar-light mantığına geçtik -->
+    <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
             <a class="navbar-brand" href="/">Fluen<span>cy</span></a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -162,12 +190,11 @@
                             <div class="profile-circle me-2">
                                 {{ user.username|slice:":1"|upper }}
                             </div>
-                            {{ user.username }}
+                            <span class="profile-name">{{ user.username }}</span>
                         </a>
                     </li>
                     <li class="nav-item ms-lg-2">
-                        <a class="btn btn-outline-light btn-sm px-3" style="border-radius: 50px;"
-                            href="/logout">Çıkış</a>
+                        <a class="btn btn-logout btn-sm px-3" href="/logout">Çıkış</a>
                     </li>
                     {% else %}
                     <li class="nav-item"><a class="nav-link px-3" href="/login">Giriş Yap</a></li>
