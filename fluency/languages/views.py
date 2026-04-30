@@ -1,24 +1,43 @@
 import json
 import requests
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from .models import Question, WritingErrorLog
-from users.models import UserLanguageLevel
+from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
-# --- DERSLERİM (ÇOKLU DİL) YÖNETİMİ ---
+# --- İŞTE DÜZELTİLEN IMPORT KISMI ---
+from .models import Question, WritingErrorLog
+from users.models import UserLanguageLevel
+# ------------------------------------
+
 
 @login_required
 def set_active_language(request, lang_id):
-    """Kullanıcı dropdown'dan bir dil seçtiğinde onu aktif yapar"""
-    lang = get_object_or_404(UserLanguageLevel, id=lang_id, user=request.user)
+    """Navbar'dan dil seçildiğinde sistemi gerçekten o dile geçirir."""
     
-    # Session'a kaydediyoruz ki sitenin geri kalanı bu dili bilsin
-    request.session['active_lang_id'] = lang.id
-    request.session['active_lang_code'] = lang.language_code
+    # 1. Veritabanındaki tüm dillerinin aktifliğini kapatıyoruz
+    request.user.languages.update(is_active=False)
     
-    return redirect('/') # Ana sayfaya (veya dashboard'a) yönlendir
+    try:
+        # 2. Seçtiğin dili bulup aktif yapıyoruz
+        selected_lang = request.user.languages.get(id=lang_id)
+        selected_lang.is_active = True
+        selected_lang.save()
+        
+        # 3. GARANTİ OLSUN DİYE: Tarayıcının hafızasına da (Session) kazıyoruz!
+        request.session['active_lang_code'] = selected_lang.language_code.lower()
+        request.session['active_lang_id'] = selected_lang.id
+        
+        # Kullanıcıya şık bir bildirim de verebilirsin (opsiyonel)
+        messages.success(request, f"Aktif dilin {selected_lang.language_code.upper()} olarak değiştirildi!")
+        
+    except Exception as e:
+        messages.error(request, "Dil değiştirilirken bir hata oluştu.")
+        print(f"Dil değiştirme hatası: {e}")
+
+    # Nereden tıklandıysa (hangi sayfadaysan) oraya geri dön
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
 
 @login_required
 def add_new_language(request):

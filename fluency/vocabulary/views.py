@@ -10,27 +10,51 @@ from .models import SavedWord
 from languages.models import WritingErrorLog 
 
 def wiki_reader(request):
-    """Wikipedia'dan tam HTML çeken ve akıllı arama yapan modül"""
     context = {}
-    db_lang_code = 'en' 
+    db_lang_code = 'en' # Varsayılan dil
     
     if request.user.is_authenticated:
-        user_lang = request.user.userlanguagelevel_set.first()
-        if user_lang:
-            db_lang_code = user_lang.language_code.lower()
+        # 1. HACK: Session (Çerez) Tarayıcı! 
+        # Navbar'daki buton dili nereye kaydettiyse bütün çerezleri tarayıp onu buluyoruz.
+        for key, value in request.session.items():
+            if 'lang' in key.lower():
+                if isinstance(value, str) and len(value) <= 5: # 'de', 'fr' gibi bir kodsa
+                    db_lang_code = value.lower()
+                    break
+                elif isinstance(value, int): # ID olarak (1, 2) kaydedildiyse
+                    try:
+                        lang_obj = request.user.languages.get(id=value)
+                        db_lang_code = lang_obj.language_code.lower()
+                        break
+                    except: pass
 
+        # 2. Eğer Session boşsa Veritabanındaki is_active alanına bak
+        if db_lang_code == 'en':
+            try:
+                active_lang = request.user.languages.filter(is_active=True).first()
+                if active_lang:
+                    db_lang_code = active_lang.language_code.lower()
+                else:
+                    first_lang = request.user.languages.first()
+                    db_lang_code = first_lang.language_code.lower() if first_lang else 'en'
+            except: pass
+
+    # 3. URL PARAMETRESİ (Sadece makale içi linklere tıklandığında çalışması için)
+    url_lang = request.GET.get('lang')
+    if url_lang:
+        db_lang_code = url_lang.lower()
+
+    # Wikipedia Haritası
     wiki_lang_map = {'en': 'en', 'fr': 'fr', 'de': 'de', 'kr': 'ko', 'fa': 'fa', 'ar': 'ar'}
     wiki_lang = wiki_lang_map.get(db_lang_code, 'en')
 
     query = request.GET.get('q', '').strip()
     article = request.GET.get('article', '').strip()
-    
-    headers = {'User-Agent': 'FluencyLanguageApp/1.0 (Takim Projesi)'}
+    headers = {'User-Agent': 'FluencyApp/1.0'}
     
     if article:
         safe_title = urllib.parse.quote(article)
         parse_url = f"https://{wiki_lang}.wikipedia.org/w/api.php?action=parse&page={safe_title}&format=json&prop=text&redirects=1"
-        
         try:
             response = requests.get(parse_url, headers=headers, timeout=10)
             if response.status_code == 200:
@@ -39,117 +63,109 @@ def wiki_reader(request):
                     context['title'] = data['parse']['title']
                     html_content = data['parse']['text']['*']
                     html_content = html_content.replace('src="//', 'src="https://')
+                    
+                    # Link tıklamalarında dilin kopmaması için:
                     safe_q = urllib.parse.quote(query)
-                    html_content = html_content.replace('href="/wiki/', f'href="?q={safe_q}&article=')
+                    html_content = html_content.replace('href="/wiki/', f'href="?lang={wiki_lang}&q={safe_q}&article=')
                     context['content'] = html_content
-                else:
-                    context['error'] = "Makale içeriği alınamadı."
-            else:
-                context['error'] = "Makale yüklenemedi veya bulunamadı."
-        except requests.exceptions.RequestException:
-            context['error'] = "Bağlantı hatası oluştu."
+        except: context['error'] = "Bağlantı hatası."
             
-        context['search_query'] = query 
-        
     elif query:
         safe_query = urllib.parse.quote(query)
         search_url = f"https://{wiki_lang}.wikipedia.org/w/api.php?action=query&list=search&srsearch={safe_query}&utf8=&format=json&srlimit=10"
-        
         try:
             search_response = requests.get(search_url, headers=headers, timeout=5)
             if search_response.status_code == 200:
-                results = search_response.json().get('query', {}).get('search', [])
-                if results:
-                    context['search_results'] = results 
-                else:
-                    context['error'] = f"Maalesef '{query}' hakkında hiçbir makale bulunamadı."
-            else:
-                context['error'] = "Arama motoru yanıt vermiyor."
-        except requests.exceptions.RequestException:
-            context['error'] = "Bağlantı hatası."
-            
-        context['search_query'] = query
+                context['search_results'] = search_response.json().get('query', {}).get('search', [])
+        except: context['error'] = "Arama başarısız."
 
-    context['lang'] = wiki_lang.upper()
+    context['search_query'] = query
+    context['lang'] = wiki_lang.upper() # Ekranda aslanlar gibi DE yazacak!
     return render(request, 'vocabulary/wiki_reader.html', context)
 
 
 @csrf_exempt
+@login_required
 def save_word_ajax(request):
-    """Tıklanan kelimeyi API ile Türkçe'ye çevirip arka planda kaydeder."""
+    """Tıklanan kelimeyi (artikeliyle birlikte) Türkçe'ye çevirir. Özel isimleri filtreler."""
     if request.method == 'POST':
-        if not request.user.is_authenticated:
-            return JsonResponse({'status': 'error', 'message': 'Giriş yapmalısın!'})
         try:
             data = json.loads(request.body)
-            clicked_word = data.get('word', '').strip().lower()
+            # Frontend'den gelen orijinal kelime (Örn: "das Krankenhaus" veya "David")
+            # Büyük/küçük harf kontrolü için lower() yapmıyoruz!
+            original_word = data.get('word', '').strip()
             lang = data.get('lang', 'en').lower()
             
-            clean_word = re.sub(r'[^\w\s]', '', clicked_word).strip()
-            
-            if clean_word:
-                existing_word = SavedWord.objects.filter(user=request.user, word=clean_word, language=lang).first()
-                if existing_word:
-                    anlam = existing_word.turkish_meaning if existing_word.turkish_meaning else "Zaten listede"
-                    return JsonResponse({'status': 'info', 'word': clean_word, 'meaning': anlam, 'message': 'Zaten sözlüğünde var!'})
-                
-                translation = "Çeviri bulunamadı"
-                try:
-                    trans_url = f"https://api.mymemory.translated.net/get?q={clean_word}&langpair={lang}|tr"
-                    trans_response = requests.get(trans_url, timeout=4)
-                    if trans_response.status_code == 200:
-                        trans_data = trans_response.json()
-                        resp_data = trans_data.get('responseData')
-                        if resp_data and isinstance(resp_data, dict):
-                            translation = resp_data.get('translatedText', 'Çeviri bulunamadı')
-                except Exception as e:
-                    print("Çeviri Hatası:", e) 
-                    pass 
+            if not original_word:
+                return JsonResponse({'status': 'error', 'message': 'Geçersiz kelime.'})
 
-                SavedWord.objects.create(user=request.user, word=clean_word, turkish_meaning=translation, language=lang)
-                
-                return JsonResponse({'status': 'success', 'word': clean_word, 'meaning': translation})
-                
-            return JsonResponse({'status': 'error', 'message': 'Geçersiz kelime.'})
+            # Arama ve veritabanı kayıtları için küçük harfe çevrilmiş hali
+            search_word = original_word.lower()
+
+            # --- 1. AŞAMA: TEMEL ÖZEL İSİM KONTROLÜ ---
+            # Artikelsiz geldiyse ve büyük harfle başlıyorsa
+            is_capitalized = original_word[0].isupper()
+            is_proper_noun = False
+
+            if original_word.isupper(): # Tamamı büyük harfse (Örn: NATO, UNESCO)
+                is_proper_noun = True
+            elif lang != 'de' and is_capitalized: # İngilizce ve Fransızcada büyük harfle başlıyorsa
+                is_proper_noun = True
+
+            # Zaten sözlükte var mı?
+            existing_word = SavedWord.objects.filter(user=request.user, word=search_word, language=lang).first()
+            if existing_word:
+                return JsonResponse({'status': 'info', 'word': search_word, 'meaning': existing_word.turkish_meaning, 'message': 'Zaten sözlüğünde!'})
+            
+            # --- ÇEVİRİ API'Sİ ---
+            translation = search_word
+            try:
+                trans_url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(search_word)}&langpair={lang}|tr"
+                trans_response = requests.get(trans_url, timeout=4)
+                if trans_response.status_code == 200:
+                    translation = trans_response.json().get('responseData', {}).get('translatedText', search_word)
+            except: 
+                pass 
+
+            # --- 2. AŞAMA: GELİŞMİŞ ÖZEL İSİM KONTROLÜ ---
+            # Çeviri sonucu kelimenin kendisiyle birebir aynıysa (örn: "Pink Floyd" çevrilince yine "Pink Floyd" olur)
+            # ve kelime orijinalinde büyük harfle başlıyorsa (Bu kural Almancadaki özel isimleri de yakalar)
+            if translation.lower() == search_word and is_capitalized:
+                is_proper_noun = True
+
+            # EĞER ÖZEL İSİMSE: Veritabanına ASLA kaydetme, sadece bilgi dön.
+            if is_proper_noun:
+                return JsonResponse({
+                    'status': 'info', 
+                    'word': original_word, 
+                    'meaning': 'Özel İsim', 
+                    'message': 'Özel isimler sözlüğe kaydedilmez.'
+                })
+
+            # Eğer normal bir kelimeyse sözlüğe aslanlar gibi kaydet
+            SavedWord.objects.create(user=request.user, word=search_word, turkish_meaning=translation, language=lang)
+            return JsonResponse({'status': 'success', 'word': search_word, 'meaning': translation})
+            
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
-    return JsonResponse({'status': 'error', 'message': 'Geçersiz istek türü.'})
+    return JsonResponse({'status': 'error', 'message': 'Geçersiz istek.'})
 
 
 @login_required
 def my_dictionary(request):
-    """Kullanıcının kaydettiği kelimeleri ve yazma hatalarını profilinde listeler."""
-    words = SavedWord.objects.filter(user=request.user).order_by('-updated_at')
-    writing_errors = WritingErrorLog.objects.filter(user=request.user).order_by('-created_at')
-
     return render(request, 'vocabulary/my_dictionary.html', {
-        'words': words,
-        'writing_errors': writing_errors
+        'words': SavedWord.objects.filter(user=request.user).order_by('-updated_at'),
+        'writing_errors': WritingErrorLog.objects.filter(user=request.user).order_by('-created_at')
     })
 
 
 @login_required
 @csrf_exempt
 def update_status(request, word_id):
-    """AJAX ile kelime durumunu günceller. İsim urls.py ile eşitlendi."""
     if request.method == 'POST':
-        # AJAX'tan gelen veriyi al
-        new_status = request.POST.get('status')
-        
-        # Eğer veri body'den JSON olarak geliyorsa
-        if not new_status:
-            try:
-                data = json.loads(request.body)
-                new_status = data.get('status')
-            except:
-                pass
-
-        try:
-            word = SavedWord.objects.get(id=word_id, user=request.user)
-            word.status = new_status
-            word.save() # updated_at otomatik güncellenir
-            return JsonResponse({'status': 'success', 'new_status': new_status})
-        except SavedWord.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Kelime bulunamadı'}, status=404)
-            
-    return JsonResponse({'status': 'error', 'message': 'Geçersiz istek'}, status=400)
+        new_status = request.POST.get('status') or json.loads(request.body).get('status')
+        word = get_object_or_404(SavedWord, id=word_id, user=request.user)
+        word.status = new_status
+        word.save()
+        return JsonResponse({'status': 'success', 'new_status': new_status})
+    return JsonResponse({'status': 'error'}, status=400)

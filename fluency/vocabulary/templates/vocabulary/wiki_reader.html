@@ -5,13 +5,13 @@
     /* Arama Kartları Hover Efekti */
     .hover-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.2) !important; cursor: pointer; }
     
-    /* VİKİPEDİ TASARIM ENTEGRASYONU (Resimdeki gibi görünmesi için) */
+    /* VİKİPEDİ TASARIM ENTEGRASYONU */
     #wiki-content { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #202122; line-height: 1.6; font-size: 1.1rem;}
     #wiki-content h2, #wiki-content h3 { border-bottom: 1px solid #a2a9b1; padding-bottom: 0.2em; margin-top: 1.5em; }
     #wiki-content a { color: #0645ad; text-decoration: none; }
     #wiki-content a:hover { text-decoration: underline; }
     
-    /* Vikipedi Sağ Bilgi Kutusu (Infobox) ve Tablolar */
+    /* Vikipedi Sağ Bilgi Kutusu ve Tablolar */
     .infobox { float: right; clear: right; margin-left: 1.5em; margin-bottom: 1em; background: #f8f9fa; border: 1px solid #a2a9b1; padding: 0.5em; width: 300px; font-size: 0.9em; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 8px;}
     .infobox th { text-align: left; }
     .tright { float: right; margin-left: 1em; border: 1px solid #ccc; padding: 5px; background: #fff; border-radius: 5px;}
@@ -20,7 +20,7 @@
     .wikitable th, .wikitable td { border: 1px solid #a2a9b1; padding: 0.4em; }
     .thumbinner { border: none !important; background: transparent !important; }
     .thumbimage { border: 1px solid #ccc; max-width: 100%; height: auto; border-radius: 5px;}
-    .navbox, .metadata, .mw-editsection { display: none; } /* Gereksiz Vikipedi linklerini gizle */
+    .navbox, .metadata, .mw-editsection { display: none; }
 </style>
 
 <div class="container mt-5 text-white">
@@ -30,10 +30,12 @@
             <div class="card bg-dark p-4 rounded-4 shadow-lg border-0 mb-4" style="background: rgba(33, 37, 41, 0.8) !important; backdrop-filter: blur(10px);">
                 <h2 class="fw-bold mb-3 text-center">🌍 Wikipedia Keşif Modülü</h2>
                 <p class="text-center text-white-50 mb-4">
+                    <!-- BURASI DİNAMİK: Seçili dile göre değişir -->
                     Şu an <strong>{{ lang }}</strong> dilinde arama yapıyorsun. Makaleyi okurken bilmediğin kelimelere tıkla, anında Türkçesiyle sözlüğüne ekle!
                 </p>
                 <form method="get" action="{% url 'wiki_reader' %}" class="d-flex gap-2 justify-content-center">
-                    <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-lg w-50 rounded-pill px-4" placeholder="Bir konu ara (örn: musique)..." required>
+                    
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-lg w-50 rounded-pill px-4" placeholder="Bir konu ara..." required>
                     <button type="submit" class="btn btn-warning btn-lg rounded-pill px-4 fw-bold shadow">Ara 🚀</button>
                 </form>
             </div>
@@ -46,11 +48,12 @@
 
             {% if search_results and not content %}
             <div class="mb-5">
-                <h4 class="text-white mb-4 border-bottom pb-2">"{{ search_query }}" için bulunan makaleler:</h4>
+                <h4 class="text-white mb-4 border-bottom pb-2">"{{ search_query }}" için {{ lang }} dilinde bulunan makaleler:</h4>
                 <div class="row g-3">
                     {% for result in search_results %}
                     <div class="col-md-6">
-                        <a href="?q={{ search_query|urlencode }}&article={{ result.title|urlencode }}" class="text-decoration-none">
+                        <!-- Dil parametresini linke de ekledik -->
+                        <a href="?q={{ search_query|urlencode }}&article={{ result.title|urlencode }}&lang={{ lang|lower }}" class="text-decoration-none">
                             <div class="card bg-light h-100 hover-card transition-all shadow-sm" style="border-radius: 15px;">
                                 <div class="card-body">
                                     <h5 class="card-title fw-bold text-dark fs-4 mb-2">📚 {{ result.title }}</h5>
@@ -66,7 +69,7 @@
 
             {% if content %}
             <div class="mb-3 d-flex justify-content-between align-items-center">
-                <a href="?q={{ search_query|urlencode }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
+                <a href="?q={{ search_query|urlencode }}&lang={{ lang|lower }}" class="btn btn-outline-light rounded-pill px-4 fw-bold">
                     ⬅️ Arama Sonuçlarına Dön
                 </a>
             </div>
@@ -98,20 +101,18 @@
         const contentDiv = document.getElementById("wiki-content");
         if (!contentDiv) return;
 
-        // İLERİ SEVİYE DOM TARAYICI (TreeWalker): Resimleri ve tabloları bozmadan sadece metinleri bulur
         const walker = document.createTreeWalker(contentDiv, NodeFilter.SHOW_TEXT, null, false);
         const nodesToReplace = [];
         let node;
         
         while (node = walker.nextNode()) {
-            // Script, stil veya zaten link olan şeylerin içindeki kelimeleri bölmekten kaçın
-            if (node.nodeValue.trim() !== '' && !['SCRIPT', 'STYLE'].includes(node.parentNode.tagName)) {
+            if (node.nodeValue.trim() !== '' && !['SCRIPT', 'STYLE', 'A'].includes(node.parentNode.tagName)) {
                 nodesToReplace.push(node);
             }
         }
 
         nodesToReplace.forEach(textNode => {
-            const words = textNode.nodeValue.split(/(\s+)/); // Boşlukları koruyarak böl
+            const words = textNode.nodeValue.split(/(\s+)/);
             const fragment = document.createDocumentFragment();
 
             words.forEach(word => {
@@ -120,25 +121,17 @@
                 } else {
                     const span = document.createElement("span");
                     span.innerText = word;
+                    span.className = "clickable-word";
                     span.style.cursor = "pointer";
-                    span.style.position = "relative";
-                    span.style.zIndex = "10"; // Vikipedi linklerinin altında kalmasın diye
-                    span.style.transition = "all 0.2s ease";
                     
-                    span.addEventListener("mouseover", () => { 
-                        span.style.backgroundColor = "#ffeeba"; 
-                        span.style.borderRadius = "3px"; 
-                    });
+                    span.addEventListener("mouseover", () => { span.style.backgroundColor = "#ffeeba"; });
                     span.addEventListener("mouseout", () => { 
-                        if(span.style.backgroundColor !== "rgb(209, 231, 221)") {
-                            span.style.backgroundColor = "transparent"; 
-                        }
+                        if(span.style.backgroundColor !== "rgb(209, 231, 221)") span.style.backgroundColor = "transparent"; 
                     });
 
-                    // TIKLAMA VE YÖNLENDİRME SORUNUNU ÇÖZEN KISIM
                     span.addEventListener("click", function(e) {
-                        e.preventDefault(); // Vikipedi linkinin çalışmasını engeller
-                        e.stopPropagation(); // Tıklamanın diğer elementlere geçmesini durdurur
+                        e.preventDefault();
+                        e.stopPropagation();
                         saveWord(word.trim(), span);
                     });
 
@@ -150,7 +143,36 @@
     });
 
     function saveWord(word, spanElement) {
-        // Tıklanıldığında loading (yükleniyor) efekti ver
+        // --- AKILLI ARTİKEL YAKALAYICI EKLENDİ ---
+        let finalWord = word.trim();
+        let prevSpan = spanElement.previousElementSibling;
+
+        // Tıklanan kelimenin solunda başka bir kelime (span) varsa kontrol et
+        if (prevSpan && prevSpan.tagName === 'SPAN') {
+            let prevWord = prevSpan.innerText.trim().toLowerCase();
+            
+            // Popüler dillere göre artikel sözlükleri
+            const articles = {
+                'de': ['der', 'die', 'das', 'ein', 'eine', 'einen', 'einem', 'einer', 'den', 'dem', 'des'],
+                'fr': ['le', 'la', 'les', 'un', 'une', "l'"],
+                'en': ['the', 'a', 'an']
+            };
+            let currentLang = "{{ lang|lower }}";
+
+            // Eğer soldaki kelime listemizdeki artikellerden biriyse birleştir!
+            if (articles[currentLang] && articles[currentLang].includes(prevWord)) {
+                // Fransızca l' için özel boşluk kontrolü (örn l' + amour = l'amour)
+                let separator = (prevWord === "l'") ? "" : " ";
+                finalWord = prevWord + separator + finalWord;
+
+                // Tıklama hissiyatı için artikeli de yeşile boya
+                prevSpan.style.backgroundColor = "#d1e7dd";
+                prevSpan.style.color = "#198754";
+                prevSpan.style.fontWeight = "bold";
+                prevSpan.style.borderRadius = "3px";
+            }
+        }
+
         spanElement.style.opacity = "0.5";
         
         fetch("{% url 'save_word_ajax' %}", {
@@ -159,20 +181,37 @@
                 "Content-Type": "application/json",
                 "X-CSRFToken": "{{ csrf_token }}"
             },
-            body: JSON.stringify({word: word, lang: "{{ lang }}"})
+            // finalWord gönderiliyor (artikel varsa birlikte, yoksa tek kelime)
+            body: JSON.stringify({word: finalWord, lang: "{{ lang|lower }}"})
         })
         .then(response => response.json())
         .then(data => {
-            spanElement.style.opacity = "1"; // Yükleme bitti
+            spanElement.style.opacity = "1";
+            
+            // Başarılıysa veya zaten listedeyse
             if (data.status === "success" || data.status === "info") {
                 spanElement.style.color = "#198754"; 
                 spanElement.style.fontWeight = "bold";
                 spanElement.style.backgroundColor = "#d1e7dd"; 
                 spanElement.style.borderRadius = "3px";
                 
-                // ARTIK TÜRKÇE ANLAMIYLA BİRLİKTE GÖSTERİYOR
-                document.getElementById("toastMessage").innerText = `✅ ${data.word} = ${data.meaning}`;
-                new bootstrap.Toast(document.getElementById("successToast")).show();
+                // --- ÖZEL İSİM BİLDİRİMİ KONTROLÜ ---
+                const toastBox = document.getElementById("successToast");
+                const toastMessage = document.getElementById("toastMessage");
+                
+                if (data.meaning === "Özel İsim") {
+                    toastMessage.innerText = `ℹ️ "${data.word}" Özel İsim!`;
+                    // Özel isimlerde tost rengini bilgi rengine (mavi tonları) çekmek istersen diye classları güncelliyoruz
+                    toastBox.classList.replace("bg-success", "bg-info");
+                    toastBox.classList.replace("text-white", "text-dark");
+                } else {
+                    toastMessage.innerText = `✅ ${data.word} = ${data.meaning}`;
+                    // Normal kelimelerde tekrar yeşile dön
+                    toastBox.classList.replace("bg-info", "bg-success");
+                    toastBox.classList.replace("text-dark", "text-white");
+                }
+                
+                new bootstrap.Toast(toastBox).show();
             } else {
                 alert("Hata: " + data.message);
             }
