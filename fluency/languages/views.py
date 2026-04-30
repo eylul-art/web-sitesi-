@@ -5,17 +5,15 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 
-# --- İŞTE DÜZELTİLEN IMPORT KISMI ---
+# Modelleri doğru yerlerden import ediyoruz
 from .models import Question, WritingErrorLog
 from users.models import UserLanguageLevel
-# ------------------------------------
 
 
 @login_required
 def set_active_language(request, lang_id):
     """Navbar'dan dil seçildiğinde sistemi gerçekten o dile geçirir."""
     
-<<<<<<< HEAD
     # 1. Veritabanındaki tüm dillerinin aktifliğini kapatıyoruz
     request.user.languages.update(is_active=False)
     
@@ -39,13 +37,6 @@ def set_active_language(request, lang_id):
     # Nereden tıklandıysa (hangi sayfadaysan) oraya geri dön
     return redirect(request.META.get('HTTP_REFERER', '/'))
 
-=======
-    
-    request.session['active_lang_id'] = lang.id
-    request.session['active_lang_code'] = lang.language_code
-    
-    return redirect('/') 
->>>>>>> 7e7fb721a5c14f3b8d44d11fd6a2b8a6f99fc668
 
 @login_required
 def add_new_language(request):
@@ -78,7 +69,7 @@ def start_placement_test(request, lang_code):
 
 def evaluate_test(request, lang_code):
     if request.method == 'POST':
-        
+        # Sadece o dildeki soruları çek
         questions = Question.objects.filter(language_code=lang_code.lower())
         score = 0
         
@@ -99,7 +90,7 @@ def evaluate_test(request, lang_code):
                 language_code=lang_code.lower(),
                 defaults={'level': level}
             )
-            
+            # Testi bitirince o dili otomatik aktif yapalım
             request.session['active_lang_id'] = new_lang.id
             request.session['active_lang_code'] = new_lang.language_code
                 
@@ -143,17 +134,17 @@ def check_writing(request):
             data = json.loads(request.body)
             text = data.get('text', '')
             
-            
+            # Yazma sayfasındaki gibi dinamik dil tespiti
             lang_code = request.session.get('active_lang_code')
             if not lang_code:
                 user_level_obj = UserLanguageLevel.objects.filter(user=request.user).first()
                 lang_code = user_level_obj.language_code if user_level_obj else 'en'
 
-            
+            # LanguageTool API Dil Kodları Eşleştirmesi
             lt_langs = {'en': 'en-US', 'de': 'de-DE', 'fr': 'fr', 'ar': 'ar', 'fa': 'fa', 'kr': 'ko'}
             target_lang = lt_langs.get(lang_code, lang_code)
 
-            
+            # API İsteği
             response = requests.post(
                 "https://api.languagetool.org/v2/check",
                 data={'text': text, 'language': target_lang}
@@ -167,7 +158,6 @@ def check_writing(request):
                     offset = match['offset']
                     length = match['length']
                     faulty_text = text[offset : offset + length]
-                    
                     
                     WritingErrorLog.objects.create(
                         user=request.user,
