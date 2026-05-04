@@ -11,7 +11,7 @@ from languages.models import WritingErrorLog
 
 def wiki_reader(request):
     context = {}
-    db_lang_code = 'en' # Varsayılan dil
+    db_lang_code = 'en' # Varsayılan dil 
     
     if request.user.is_authenticated:
         # 1. HACK: Session (Çerez) Tarayıcı! 
