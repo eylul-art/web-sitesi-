@@ -3,7 +3,7 @@ import json
 import re
 import urllib.parse
 import string
-import spacy # Kelime köklerini bulmak için
+import spacy
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -11,12 +11,27 @@ from django.contrib.auth.decorators import login_required
 from .models import SavedWord
 from languages.models import WritingErrorLog 
 
-# Dil modellerini belleğe bir kez yüklüyoruz
-# Not: Sunucunda bu modellerin yüklü olması gerekir.
+# Dil modellerini belleğe yüklüyoruz
 nlp_models = {
     'en': spacy.load('en_core_web_sm'),
     'fr': spacy.load('fr_core_news_sm'),
     'de': spacy.load('de_core_news_sm')
+}
+
+POS_TR_MAP = {
+    'NOUN': 'isim',
+    'VERB': 'fiil',
+    'PRON': 'zamir',
+    'ADJ': 'sıfat',
+    'ADV': 'zarf',
+    'ADP': 'edat',
+    'CCONJ': 'bağlaç',
+    'SCONJ': 'bağlaç',
+    'DET': 'belirteç',
+    'INTJ': 'ünlem',
+    'PROPN': 'özel isim',
+    'AUX': 'yardımcı fiil',
+    'NUM': 'sayı'
 }
 
 def wiki_reader(request):
@@ -91,38 +106,40 @@ def wiki_reader(request):
 @csrf_exempt
 @login_required
 def save_word_ajax(request):
-    """Tıklanan kelimeyi kök haline getirir, çevirir ve kaydeder."""
+    """Tıklanan kelimeyi kök haline getirir, türünü bulur, çevirir ve kaydeder."""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             raw_word = data.get('word', '').strip()
             lang = data.get('lang', 'en').lower()
             
-            # 1. Adım: İmla temizliği
             clean_word = raw_word.strip(string.punctuation)
             if not clean_word:
                 return JsonResponse({'status': 'error', 'message': 'Geçersiz kelime.'})
 
-            # 2. Adım: Lemmatization (Köke inme)
-            # Seçilen dile uygun spacy modelini kullanıyoruz
+            # --- Lemmatization ve Tür (POS) Bulma ---
             nlp = nlp_models.get(lang, nlp_models['en'])
             doc = nlp(clean_word)
-            # Kelimenin yalın halini alıyoruz
-            lemma_word = doc[0].lemma_ if len(doc) > 0 else clean_word
+            
+            if len(doc) > 0:
+                lemma_word = doc[0].lemma_
+                pos_tag_en = doc[0].pos_ 
+            else:
+                lemma_word = clean_word
+                pos_tag_en = ""
+                
             search_word = lemma_word.lower()
 
-            # --- ÖZEL İSİM KONTROLÜ (Orijinal kelime üzerinden) ---
             is_capitalized = clean_word[0].isupper() if clean_word else False
             is_proper_noun = False
             if clean_word.isupper() or (lang != 'de' and is_capitalized):
                 is_proper_noun = True
 
-            # Zaten sözlükte var mı?
             existing_word = SavedWord.objects.filter(user=request.user, word=search_word, language=lang).first()
             if existing_word:
                 return JsonResponse({'status': 'info', 'word': search_word, 'meaning': existing_word.turkish_meaning, 'message': 'Kök hali zaten sözlüğünde!'})
             
-            # --- ÇEVİRİ (Kök hali üzerinden) ---
+            # --- ÇEVİRİ ---
             translation = search_word
             try:
                 trans_url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(search_word)}&langpair={lang}|tr"
@@ -138,9 +155,30 @@ def save_word_ajax(request):
             if is_proper_noun:
                 return JsonResponse({'status': 'info', 'word': clean_word, 'meaning': 'Özel İsim'})
 
-            # Kök halini ve karşılığındaki Türkçe anlamını kaydet
-            SavedWord.objects.create(user=request.user, word=search_word, turkish_meaning=translation, language=lang)
-            return JsonResponse({'status': 'success', 'word': search_word, 'meaning': translation})
+            # --- KESİN ÇÖZÜM ALGORİTMASI ---
+            pos_tr = POS_TR_MAP.get(pos_tag_en, "")
+            tr_lower = translation.lower().strip()
+            
+            # Çeviri mak veya mek ile mi bitiyor?
+            is_verb_in_tr = tr_lower.endswith('mak') or tr_lower.endswith('mek')
+            
+            # KURAL 1: Spacy ne derse desin (zarf, sıfat, vs.), çeviride mak/mek varsa o fiildir.
+            if is_verb_in_tr:
+                pos_tr = 'fiil'
+                
+            # KURAL 2: Almancada baş harfi büyük olanlar her zaman isimdir.
+            elif lang == 'de' and clean_word and clean_word[0].isupper():
+                pos_tr = 'isim'
+                
+            # KURAL 3: Spacy "fiil" dedi (emir kipi sandı) ama çeviride mak/mek yoksa, isimdir.
+            elif pos_tr == 'fiil' and not is_verb_in_tr:
+                pos_tr = 'isim'
+
+            # --- ANLAMI TÜRÜYLE BİRLEŞTİRME ---
+            final_translation = f"{translation} ({pos_tr})" if pos_tr else translation
+
+            SavedWord.objects.create(user=request.user, word=search_word, turkish_meaning=final_translation, language=lang)
+            return JsonResponse({'status': 'success', 'word': search_word, 'meaning': final_translation})
             
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
