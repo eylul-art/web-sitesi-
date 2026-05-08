@@ -2,7 +2,8 @@ import requests
 import json
 import re
 import urllib.parse
-import string  # İmla işaretlerini temizlemek için gerekli
+import string
+import spacy # Kelime köklerini bulmak için
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -10,12 +11,19 @@ from django.contrib.auth.decorators import login_required
 from .models import SavedWord
 from languages.models import WritingErrorLog 
 
+# Dil modellerini belleğe bir kez yüklüyoruz
+# Not: Sunucunda bu modellerin yüklü olması gerekir.
+nlp_models = {
+    'en': spacy.load('en_core_web_sm'),
+    'fr': spacy.load('fr_core_news_sm'),
+    'de': spacy.load('de_core_news_sm')
+}
+
 def wiki_reader(request):
     context = {}
-    db_lang_code = 'en' # Varsayılan dil 
+    db_lang_code = 'en'
     
     if request.user.is_authenticated:
-        # 1. HACK: Session (Çerez) Tarayıcı! 
         for key, value in request.session.items():
             if 'lang' in key.lower():
                 if isinstance(value, str) and len(value) <= 5: 
@@ -28,7 +36,6 @@ def wiki_reader(request):
                         break
                     except: pass
 
-        # 2. Eğer Session boşsa Veritabanındaki is_active alanına bak
         if db_lang_code == 'en':
             try:
                 active_lang = request.user.languages.filter(is_active=True).first()
@@ -39,12 +46,10 @@ def wiki_reader(request):
                     db_lang_code = first_lang.language_code.lower() if first_lang else 'en'
             except: pass
 
-    # 3. URL PARAMETRESİ
     url_lang = request.GET.get('lang')
     if url_lang:
         db_lang_code = url_lang.lower()
 
-    # Wikipedia Haritası
     wiki_lang_map = {'en': 'en', 'fr': 'fr', 'de': 'de', 'kr': 'ko', 'fa': 'fa', 'ar': 'ar'}
     wiki_lang = wiki_lang_map.get(db_lang_code, 'en')
 
@@ -86,38 +91,38 @@ def wiki_reader(request):
 @csrf_exempt
 @login_required
 def save_word_ajax(request):
-    """Tıklanan kelimeyi temizler, çevirir ve kaydeder."""
+    """Tıklanan kelimeyi kök haline getirir, çevirir ve kaydeder."""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            # 1. Adım: Kelimeyi al ve etrafındaki boşlukları, imla işaretlerini temizle
             raw_word = data.get('word', '').strip()
-            # string.punctuation: !"#$%&'()*+,-./:;<=>?@[\]^_{|}~ karakterlerini temizler
-            original_word = raw_word.strip(string.punctuation)
-            
             lang = data.get('lang', 'en').lower()
             
-            if not original_word:
+            # 1. Adım: İmla temizliği
+            clean_word = raw_word.strip(string.punctuation)
+            if not clean_word:
                 return JsonResponse({'status': 'error', 'message': 'Geçersiz kelime.'})
 
-            # Arama ve veritabanı kayıtları için küçük harfe çevrilmiş hali
-            search_word = original_word.lower()
+            # 2. Adım: Lemmatization (Köke inme)
+            # Seçilen dile uygun spacy modelini kullanıyoruz
+            nlp = nlp_models.get(lang, nlp_models['en'])
+            doc = nlp(clean_word)
+            # Kelimenin yalın halini alıyoruz
+            lemma_word = doc[0].lemma_ if len(doc) > 0 else clean_word
+            search_word = lemma_word.lower()
 
-            # --- ÖZEL İSİM KONTROLÜ ---
-            is_capitalized = original_word[0].isupper() if original_word else False
+            # --- ÖZEL İSİM KONTROLÜ (Orijinal kelime üzerinden) ---
+            is_capitalized = clean_word[0].isupper() if clean_word else False
             is_proper_noun = False
-
-            if original_word.isupper(): 
-                is_proper_noun = True
-            elif lang != 'de' and is_capitalized: 
+            if clean_word.isupper() or (lang != 'de' and is_capitalized):
                 is_proper_noun = True
 
             # Zaten sözlükte var mı?
             existing_word = SavedWord.objects.filter(user=request.user, word=search_word, language=lang).first()
             if existing_word:
-                return JsonResponse({'status': 'info', 'word': search_word, 'meaning': existing_word.turkish_meaning, 'message': 'Zaten sözlüğünde!'})
+                return JsonResponse({'status': 'info', 'word': search_word, 'meaning': existing_word.turkish_meaning, 'message': 'Kök hali zaten sözlüğünde!'})
             
-            # --- ÇEVİRİ ---
+            # --- ÇEVİRİ (Kök hali üzerinden) ---
             translation = search_word
             try:
                 trans_url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(search_word)}&langpair={lang}|tr"
@@ -131,14 +136,9 @@ def save_word_ajax(request):
                 is_proper_noun = True
 
             if is_proper_noun:
-                return JsonResponse({
-                    'status': 'info', 
-                    'word': original_word, 
-                    'meaning': 'Özel İsim', 
-                    'message': 'Özel isimler sözlüğe kaydedilmez.'
-                })
+                return JsonResponse({'status': 'info', 'word': clean_word, 'meaning': 'Özel İsim'})
 
-            # Temizlenmiş kelimeyi kaydet
+            # Kök halini ve karşılığındaki Türkçe anlamını kaydet
             SavedWord.objects.create(user=request.user, word=search_word, turkish_meaning=translation, language=lang)
             return JsonResponse({'status': 'success', 'word': search_word, 'meaning': translation})
             
