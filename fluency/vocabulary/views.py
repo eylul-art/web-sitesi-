@@ -2,6 +2,7 @@ import requests
 import json
 import re
 import urllib.parse
+import string  # İmla işaretlerini temizlemek için gerekli
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -15,13 +16,12 @@ def wiki_reader(request):
     
     if request.user.is_authenticated:
         # 1. HACK: Session (Çerez) Tarayıcı! 
-        # Navbar'daki buton dili nereye kaydettiyse bütün çerezleri tarayıp onu buluyoruz.
         for key, value in request.session.items():
             if 'lang' in key.lower():
-                if isinstance(value, str) and len(value) <= 5: # 'de', 'fr' gibi bir kodsa
+                if isinstance(value, str) and len(value) <= 5: 
                     db_lang_code = value.lower()
                     break
-                elif isinstance(value, int): # ID olarak (1, 2) kaydedildiyse
+                elif isinstance(value, int): 
                     try:
                         lang_obj = request.user.languages.get(id=value)
                         db_lang_code = lang_obj.language_code.lower()
@@ -39,7 +39,7 @@ def wiki_reader(request):
                     db_lang_code = first_lang.language_code.lower() if first_lang else 'en'
             except: pass
 
-    # 3. URL PARAMETRESİ (Sadece makale içi linklere tıklandığında çalışması için)
+    # 3. URL PARAMETRESİ
     url_lang = request.GET.get('lang')
     if url_lang:
         db_lang_code = url_lang.lower()
@@ -64,7 +64,6 @@ def wiki_reader(request):
                     html_content = data['parse']['text']['*']
                     html_content = html_content.replace('src="//', 'src="https://')
                     
-                    # Link tıklamalarında dilin kopmaması için:
                     safe_q = urllib.parse.quote(query)
                     html_content = html_content.replace('href="/wiki/', f'href="?lang={wiki_lang}&q={safe_q}&article=')
                     context['content'] = html_content
@@ -80,20 +79,22 @@ def wiki_reader(request):
         except: context['error'] = "Arama başarısız."
 
     context['search_query'] = query
-    context['lang'] = wiki_lang.upper() # Ekranda aslanlar gibi DE yazacak!
+    context['lang'] = wiki_lang.upper()
     return render(request, 'vocabulary/wiki_reader.html', context)
 
 
 @csrf_exempt
 @login_required
 def save_word_ajax(request):
-    """Tıklanan kelimeyi (artikeliyle birlikte) Türkçe'ye çevirir. Özel isimleri filtreler."""
+    """Tıklanan kelimeyi temizler, çevirir ve kaydeder."""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            # Frontend'den gelen orijinal kelime (Örn: "das Krankenhaus" veya "David")
-            # Büyük/küçük harf kontrolü için lower() yapmıyoruz!
-            original_word = data.get('word', '').strip()
+            # 1. Adım: Kelimeyi al ve etrafındaki boşlukları, imla işaretlerini temizle
+            raw_word = data.get('word', '').strip()
+            # string.punctuation: !"#$%&'()*+,-./:;<=>?@[\]^_{|}~ karakterlerini temizler
+            original_word = raw_word.strip(string.punctuation)
+            
             lang = data.get('lang', 'en').lower()
             
             if not original_word:
@@ -102,14 +103,13 @@ def save_word_ajax(request):
             # Arama ve veritabanı kayıtları için küçük harfe çevrilmiş hali
             search_word = original_word.lower()
 
-            # --- 1. AŞAMA: TEMEL ÖZEL İSİM KONTROLÜ ---
-            # Artikelsiz geldiyse ve büyük harfle başlıyorsa
-            is_capitalized = original_word[0].isupper()
+            # --- ÖZEL İSİM KONTROLÜ ---
+            is_capitalized = original_word[0].isupper() if original_word else False
             is_proper_noun = False
 
-            if original_word.isupper(): # Tamamı büyük harfse (Örn: NATO, UNESCO)
+            if original_word.isupper(): 
                 is_proper_noun = True
-            elif lang != 'de' and is_capitalized: # İngilizce ve Fransızcada büyük harfle başlıyorsa
+            elif lang != 'de' and is_capitalized: 
                 is_proper_noun = True
 
             # Zaten sözlükte var mı?
@@ -117,7 +117,7 @@ def save_word_ajax(request):
             if existing_word:
                 return JsonResponse({'status': 'info', 'word': search_word, 'meaning': existing_word.turkish_meaning, 'message': 'Zaten sözlüğünde!'})
             
-            # --- ÇEVİRİ API'Sİ ---
+            # --- ÇEVİRİ ---
             translation = search_word
             try:
                 trans_url = f"https://api.mymemory.translated.net/get?q={urllib.parse.quote(search_word)}&langpair={lang}|tr"
@@ -127,13 +127,9 @@ def save_word_ajax(request):
             except: 
                 pass 
 
-            # --- 2. AŞAMA: GELİŞMİŞ ÖZEL İSİM KONTROLÜ ---
-            # Çeviri sonucu kelimenin kendisiyle birebir aynıysa (örn: "Pink Floyd" çevrilince yine "Pink Floyd" olur)
-            # ve kelime orijinalinde büyük harfle başlıyorsa (Bu kural Almancadaki özel isimleri de yakalar)
             if translation.lower() == search_word and is_capitalized:
                 is_proper_noun = True
 
-            # EĞER ÖZEL İSİMSE: Veritabanına ASLA kaydetme, sadece bilgi dön.
             if is_proper_noun:
                 return JsonResponse({
                     'status': 'info', 
@@ -142,7 +138,7 @@ def save_word_ajax(request):
                     'message': 'Özel isimler sözlüğe kaydedilmez.'
                 })
 
-            # Eğer normal bir kelimeyse sözlüğe aslanlar gibi kaydet
+            # Temizlenmiş kelimeyi kaydet
             SavedWord.objects.create(user=request.user, word=search_word, turkish_meaning=translation, language=lang)
             return JsonResponse({'status': 'success', 'word': search_word, 'meaning': translation})
             
