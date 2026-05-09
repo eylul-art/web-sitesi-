@@ -1,3 +1,4 @@
+import random
 import requests
 import json
 import re
@@ -203,3 +204,43 @@ def update_status(request, word_id):
         word.save()
         return JsonResponse({'status': 'success', 'new_status': new_status})
     return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def vocabulary_quiz(request):
+    # Kullanıcının tüm kelimelerini alıyoruz
+    user_words = list(SavedWord.objects.filter(user=request.user))
+    
+    # Test yapabilmek için sözlükte en az 4 kelime olması lazım
+    if len(user_words) < 4:
+        return render(request, 'vocabulary/quiz.html', {
+            'error': 'Test çözebilmek için sözlüğüne en az 4 kelime eklemelisin.'
+        })
+
+    # Test için rastgele 5 kelime seç (Sözlükte 5'ten az varsa hepsini al)
+    sample_size = min(5, len(user_words))
+    selected_words = random.sample(user_words, sample_size)
+    
+    questions = []
+    
+    for word in selected_words:
+        correct_answer = word.turkish_meaning
+        
+        # Çeldirici (yanlış) şıklar için bu kelime hariç diğer kelimeleri alıyoruz
+        other_words = [w.turkish_meaning for w in user_words if w.id != word.id]
+        
+        # 3 tane rastgele yanlış şık seç
+        wrong_options = random.sample(other_words, min(3, len(other_words)))
+        
+        # Doğru ve yanlış şıkları birleştirip sırasını karıştırıyoruz
+        options = wrong_options + [correct_answer]
+        random.shuffle(options)
+        
+        questions.append({
+            'word_id': word.id,
+            'word': word.word,
+            'language': word.language.upper(),
+            'correct_answer': correct_answer,
+            'options': options
+        })
+
+    return render(request, 'vocabulary/quiz.html', {'questions': questions})

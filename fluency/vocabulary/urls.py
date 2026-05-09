@@ -11,4 +11,6 @@ urlpatterns = [
     
     path('dictionary/', views.my_dictionary, name='my_dictionary'),
     path('update-status/<int:word_id>/', views.update_status, name='update_status'),
+    # vocabulary/urls.py içinde urlpatterns listesine ekle:
+    path('quiz/', views.vocabulary_quiz, name='vocabulary_quiz'),
 ]

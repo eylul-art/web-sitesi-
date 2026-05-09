@@ -20,7 +20,7 @@
 
         /* Navbar Arka Planı */
         .navbar {
-            background: rgba(255, 255, 255, 0.2) !important; /* Biraz daha belirgin yaptık */
+            background: rgba(255, 255, 255, 0.2) !important; 
             backdrop-filter: blur(15px);
             border-bottom: 1px solid rgba(255, 255, 255, 0.2);
             padding: 0.8rem 0;
@@ -30,29 +30,33 @@
         .navbar-brand {
             font-weight: 700;
             font-size: 1.6rem;
-            color: #212529 !important; /* Koyu Siyah */
+            color: #212529 !important; 
         }
 
         .navbar-brand span {
-            color: #5a3791; /* 'cy' kısmını mor tonu yaptık */
+            color: #5a3791; 
         }
 
         /* Menü Linklerini Siyah Yaptık */
         .nav-link {
-            color: #212529 !important; /* Net Siyah */
+            color: #212529 !important; 
             font-weight: 600;
             transition: 0.3s;
             border-radius: 10px;
         }
 
         .nav-link:hover {
-            color: #5a3791 !important; /* Hoverda mor renk */
+            color: #5a3791 !important; 
             background: rgba(255, 255, 255, 0.3);
         }
 
-        /* Yazma Pratiği Yazısı */
+        /* Özel Renkli Linkler */
         .nav-link.text-warning {
-            color: #856404 !important; /* Daha koyu, okunabilir bir hardal/sarı */
+            color: #856404 !important; /* Hardal/sarı */
+        }
+        
+        .nav-link.text-success {
+            color: #198754 !important; /* Test için yeşil ton */
         }
 
         /* Profil İsmi */
@@ -126,8 +130,8 @@
         .profile-circle {
             width: 35px;
             height: 35px;
-            background: #5a3791; /* Mor arka plan */
-            color: #ffd700; /* Sarı harf */
+            background: #5a3791; 
+            color: #ffd700; 
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -139,7 +143,6 @@
 
 <body>
 
-    <!-- navbar-dark yerine navbar-light mantığına geçtik -->
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
             <a class="navbar-brand" href="/">Fluen<span>cy</span></a>
@@ -181,9 +184,19 @@
                         </ul>
                     </li>
                     
+                    <!-- YENİ EKLENEN KISIM: Sözlüğüm ve Kelime Testi -->
+                    <li class="nav-item">
+                        <a class="nav-link px-3 fw-bold" href="{% url 'my_dictionary' %}">📚 Sözlüğüm</a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a class="nav-link px-3 fw-bold text-success" href="{% url 'vocabulary_quiz' %}">🧠 Kelime Testi</a>
+                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link px-3 fw-bold text-warning" href="{% url 'writing_practice' %}">✍️ Yazma Pratiği</a>
                     </li>
+                    <!-- BİTİŞ -->
 
                     <li class="nav-item">
                         <a class="nav-link px-3 d-flex align-items-center" href="/profile">

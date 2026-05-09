@@ -1,0 +1,119 @@
+{% extends 'base.html' %} 
+
+{% block content %}
+<div class="container mt-5" style="max-width: 650px;">
+    <div class="text-center mb-4">
+        <h2 class="fw-bold">🧠 Kelime Testi</h2>
+        <p class="text-white-50">Öğrendiğin kelimeleri test etme zamanı!</p>
+    </div>
+    
+    {% if error %}
+        <div class="alert alert-warning text-center">{{ error }}</div>
+    {% else %}
+        <div id="quiz-container">
+            {% for q in questions %}
+            <!-- Soru Kartı (Buzlu Cam Efekti) -->
+            <div class="question-card p-5 rounded-4 shadow-lg" id="question-{{ forloop.counter }}" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2); {% if not forloop.first %}display: none;{% endif %}">
+                
+                <div class="text-center mb-5">
+                    <span class="badge bg-warning text-dark px-3 py-2 mb-3 fs-6 rounded-pill">{{ q.language }}</span>
+                    <h2 class="fw-bold display-6">{{ q.word }}</h2>
+                    <p class="text-white-50 fs-5 mb-0">Bu kelimenin Türkçe anlamı nedir?</p>
+                </div>
+                
+                <div class="options-group d-flex flex-column gap-3">
+                    {% for option in q.options %}
+                    <!-- ŞIKLAR BURADA: Tamamen beyaz arka plan, koyu gri yazı -->
+                    <button class="btn bg-white text-dark option-btn text-start px-4 py-3 fw-bold shadow-sm border-0" 
+                            style="border-radius: 12px; font-size: 1.15rem; transition: 0.2s;"
+                            data-correct="{{ q.correct_answer }}" 
+                            data-selected="{{ option }}"
+                            onclick="checkAnswer(this, '{{ forloop.parentloop.counter }}', {{ forloop.parentloop.last|yesno:'true,false' }})"
+                            onmouseover="this.classList.add('opacity-75')"
+                            onmouseout="this.classList.remove('opacity-75')">
+                        {{ option }}
+                    </button>
+                    {% endfor %}
+                </div>
+                
+                <!-- Geri bildirim mesajı (Doğru/Yanlış) için alan -->
+                <div class="feedback mt-4 text-center fw-bold fs-4" id="feedback-{{ forloop.counter }}" style="min-height: 40px;"></div>
+            </div>
+            {% endfor %}
+            
+            <!-- Sonuç Ekranı -->
+            <div id="result-screen" style="display: none;" class="mt-4 text-center p-5 rounded-4 shadow-lg" style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.2);">
+                <h1 style="font-size: 5rem;">🎉</h1>
+                <h2 class="mt-3 fw-bold">Test Bitti!</h2>
+                <h4 class="fw-light mt-3 mb-4">Doğru Sayısı: <span id="score" class="fw-bold text-warning fs-2">0</span> <span class="fs-4">/ {{ questions|length }}</span></h4>
+                <div class="mt-4 gap-3 d-flex justify-content-center">
+                    <a href="{% url 'vocabulary_quiz' %}" class="btn btn-warning fw-bold px-4 py-2 rounded-pill text-dark shadow">Yeniden Çöz</a>
+                    <a href="{% url 'my_dictionary' %}" class="btn border border-2 border-white text-white fw-bold px-4 py-2 rounded-pill hover-bg-white">Sözlüğüme Dön</a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    let score = 0;
+
+    function checkAnswer(button, questionIndex, isLastQuestion) {
+        const parentCard = button.closest('.question-card');
+        const allButtons = parentCard.querySelectorAll('.option-btn');
+        
+        // Tıklandıktan sonra butonları kilitle
+        allButtons.forEach(btn => {
+            btn.disabled = true;
+            btn.onmouseover = null;
+            btn.onmouseout = null;
+        });
+
+        const correctAnswer = button.getAttribute('data-correct');
+        const selectedAnswer = button.getAttribute('data-selected');
+        const feedbackDiv = document.getElementById(`feedback-${questionIndex}`);
+
+        if (selectedAnswer === correctAnswer) {
+            // DOĞRU: Butonu Yeşil Yap
+            button.classList.replace('bg-white', 'bg-success');
+            button.classList.replace('text-dark', 'text-white');
+            feedbackDiv.innerHTML = "✅ Harika!";
+            feedbackDiv.style.color = "#a3e635"; 
+            score++;
+        } else {
+            // YANLIŞ: Butonu Kırmızı Yap
+            button.classList.replace('bg-white', 'bg-danger');
+            button.classList.replace('text-dark', 'text-white');
+            feedbackDiv.innerHTML = `❌ Doğrusu: <span class="text-white">${correctAnswer}</span>`;
+            feedbackDiv.style.color = "#f87171"; 
+            
+            // Doğru şıkkı bulup yeşil göster
+            allButtons.forEach(btn => {
+                if(btn.getAttribute('data-selected') === correctAnswer) {
+                    btn.classList.replace('bg-white', 'bg-success');
+                    btn.classList.replace('text-dark', 'text-white');
+                }
+            });
+        }
+
+        // 1.5 saniye bekle ve diğer soruya geç
+        setTimeout(() => {
+            parentCard.style.display = 'none';
+            if (isLastQuestion) {
+                document.getElementById('result-screen').style.display = 'block';
+                document.getElementById('score').innerText = score;
+            } else {
+                const nextIndex = parseInt(questionIndex) + 1;
+                document.getElementById(`question-${nextIndex}`).style.display = 'block';
+            }
+        }, 1500);
+    }
+</script>
+
+<style>
+    .hover-bg-white:hover {
+        background-color: white !important;
+        color: #764ba2 !important;
+    }
+</style>
+{% endblock %}
